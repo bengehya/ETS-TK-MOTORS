@@ -58,6 +58,9 @@ class HandleInertiaRequests extends Middleware
                 'city' => config('tkmotors.city'),
             ],
             'canRegister' => app(BootstrapRegistrationService::class)->isOpen(),
+            'flash' => [
+                'status' => $request->session()->get('status'),
+            ],
         ];
     }
 }
