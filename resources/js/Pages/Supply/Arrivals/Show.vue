@@ -42,11 +42,9 @@ const rejectForm = useForm({
 });
 
 const submitApprove = () => {
+    confirmingApprove.value = false;
     approveForm.post(route('arrivals.approve', props.arrival.id), {
         preserveScroll: true,
-        onSuccess: () => {
-            confirmingApprove.value = false;
-        },
     });
 };
 
@@ -136,7 +134,7 @@ const submitReject = () => {
             </div>
         </div>
 
-        <Modal :show="confirmingApprove" max-width="md" @close="confirmingApprove = false">
+        <Modal :show="confirmingApprove && canApprove" max-width="md" @close="confirmingApprove = false">
             <div class="p-6">
                 <h3 class="text-lg font-semibold text-brand-navy">Confirmer la validation</h3>
                 <p class="mt-2 text-sm text-gray-600">
@@ -150,7 +148,7 @@ const submitReject = () => {
             </div>
         </Modal>
 
-        <Modal :show="confirmingReject" max-width="md" @close="confirmingReject = false">
+        <Modal :show="confirmingReject && canApprove" max-width="md" @close="confirmingReject = false">
             <form class="p-6" @submit.prevent="submitReject">
                 <h3 class="text-lg font-semibold text-brand-navy">Confirmer le rejet</h3>
                 <p class="mt-2 text-sm text-gray-600">
