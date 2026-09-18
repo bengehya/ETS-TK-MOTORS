@@ -7,6 +7,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Stock\ProductStockController;
 use App\Http\Controllers\Stock\StockLocationController;
 use App\Http\Controllers\Stock\StockMovementController;
+use App\Http\Controllers\Supply\ArrivalController;
 use App\Services\BootstrapRegistrationService;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -55,6 +56,20 @@ Route::middleware('auth')->group(function () {
         Route::get('/stocks/boutique', [StockLocationController::class, 'boutique'])->name('stocks.boutique');
         Route::get('/stocks/depot', [StockLocationController::class, 'depot'])->name('stocks.depot');
         Route::get('/stocks/mouvements', [StockMovementController::class, 'index'])->name('stocks.movements');
+    });
+
+    Route::middleware('permission:record_stock_receipts')->group(function () {
+        Route::get('/arrivages', [ArrivalController::class, 'index'])->name('arrivals.index');
+        Route::get('/arrivages/nouveau', [ArrivalController::class, 'create'])->name('arrivals.create');
+        Route::post('/arrivages', [ArrivalController::class, 'store'])->name('arrivals.store');
+        Route::get('/arrivages/en-attente', [ArrivalController::class, 'pending'])->name('arrivals.pending');
+        Route::get('/arrivages/historique', [ArrivalController::class, 'history'])->name('arrivals.history');
+        Route::get('/arrivages/{arrival}', [ArrivalController::class, 'show'])->name('arrivals.show');
+
+        Route::middleware('permission:validate_stock_receipts')->group(function () {
+            Route::post('/arrivages/{arrival}/valider', [ArrivalController::class, 'approve'])->name('arrivals.approve');
+            Route::post('/arrivages/{arrival}/rejeter', [ArrivalController::class, 'reject'])->name('arrivals.reject');
+        });
     });
 });
 

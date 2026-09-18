@@ -9,6 +9,11 @@ defineProps<{
         depot_quantity: number;
     };
     canViewCatalog: boolean;
+    arrivals: {
+        pending: number;
+    };
+    canRecordArrivals: boolean;
+    canValidateArrivals: boolean;
 }>();
 
 const page = usePage();
@@ -58,6 +63,19 @@ const brand = page.props.brand;
                         </p>
                         <p class="mt-1 text-sm text-gray-600">{{ brand.city }}</p>
                     </section>
+                </div>
+
+                <div v-if="canRecordArrivals" class="mt-6 grid gap-6 md:grid-cols-2">
+                    <Link :href="route('arrivals.pending')" class="rounded-xl border border-brand-gold/40 bg-white p-6 shadow-sm">
+                        <h3 class="text-sm font-semibold uppercase tracking-wide text-brand-gold">
+                            {{ canValidateArrivals ? 'Arrivages en attente' : 'Mes arrivages en attente' }}
+                        </h3>
+                        <p class="mt-3 text-3xl font-semibold text-brand-navy">{{ arrivals.pending }}</p>
+                    </Link>
+                    <Link :href="route('arrivals.create')" class="rounded-xl border border-brand-navy/20 bg-white p-6 shadow-sm">
+                        <h3 class="text-sm font-semibold uppercase tracking-wide text-brand-navy">Nouvel arrivage</h3>
+                        <p class="mt-3 text-sm text-gray-600">Enregistrer une marchandise. Le stock n’augmente qu’après validation d’un patron.</p>
+                    </Link>
                 </div>
 
                 <div v-if="canViewCatalog" class="mt-6 grid gap-6 md:grid-cols-3">

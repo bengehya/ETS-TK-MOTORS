@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class ExampleTest extends TestCase
@@ -16,5 +17,9 @@ class ExampleTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('TK MOTORS', false);
         $response->assertSee('Votre Moto, Notre Passion', false);
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Welcome')
+            ->where('canLogin', true)
+        );
     }
 }

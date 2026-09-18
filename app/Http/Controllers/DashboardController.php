@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ArrivalStatus;
 use App\Enums\Permission;
+use App\Models\Arrival;
 use App\Models\Inventory;
 use App\Models\Product;
 use App\Services\LocationProvisioner;
@@ -29,6 +31,18 @@ class DashboardController extends Controller
                 'depot_quantity' => (int) Inventory::query()->where('location_id', $depot->id)->sum('quantity'),
             ],
             'canViewCatalog' => $user->hasPermission(Permission::SearchProducts),
+            'arrivals' => [
+                'pending' => Arrival::query()
+                    ->forOrganization($organization->id)
+                    ->when(
+                        ! $user->hasPermission(Permission::ValidateStockReceipts),
+                        fn ($query) => $query->where('recorded_by', $user->id),
+                    )
+                    ->where('status', ArrivalStatus::Pending)
+                    ->count(),
+            ],
+            'canRecordArrivals' => $user->hasPermission(Permission::RecordStockReceipts),
+            'canValidateArrivals' => $user->hasPermission(Permission::ValidateStockReceipts),
         ]);
     }
 }

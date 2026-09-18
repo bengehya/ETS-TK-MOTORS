@@ -3,8 +3,10 @@
 namespace App\Providers;
 
 use App\Enums\Permission;
+use App\Models\Arrival;
 use App\Models\Product;
 use App\Models\User;
+use App\Policies\ArrivalPolicy;
 use App\Policies\ProductPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
@@ -38,7 +40,18 @@ class AppServiceProvider extends ServiceProvider
                 ->firstOrFail();
         });
 
+        Route::bind('arrival', function (string $value): Arrival {
+            $user = request()->user();
+            abort_unless($user !== null, 401);
+
+            return Arrival::query()
+                ->where('organization_id', $user->organization_id)
+                ->whereKey($value)
+                ->firstOrFail();
+        });
+
         Gate::policy(Product::class, ProductPolicy::class);
+        Gate::policy(Arrival::class, ArrivalPolicy::class);
 
         foreach (Permission::cases() as $permission) {
             Gate::define($permission->value, function (User $user) use ($permission): bool {
