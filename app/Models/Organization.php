@@ -20,11 +20,34 @@ class Organization extends Model
         'slug',
     ];
 
+    protected static function booted(): void
+    {
+        static::created(function (Organization $organization): void {
+            app(\App\Services\LocationProvisioner::class)->provision($organization);
+        });
+    }
+
     /**
      * @return HasMany<User, $this>
      */
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
+    }
+
+    /**
+     * @return HasMany<Location, $this>
+     */
+    public function locations(): HasMany
+    {
+        return $this->hasMany(Location::class);
+    }
+
+    /**
+     * @return HasMany<Product, $this>
+     */
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class);
     }
 }

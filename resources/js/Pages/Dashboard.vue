@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, usePage } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
+
+defineProps<{
+    catalog: {
+        active_products: number;
+        boutique_quantity: number;
+        depot_quantity: number;
+    };
+    canViewCatalog: boolean;
+}>();
 
 const page = usePage();
 const user = page.props.auth.user;
@@ -51,19 +60,22 @@ const brand = page.props.brand;
                     </section>
                 </div>
 
-                <section class="mt-6 rounded-xl border border-brand-navy/10 bg-white p-6 shadow-sm">
-                    <h3 class="text-sm font-semibold uppercase tracking-wide text-brand-navy">
-                        Fondation
-                    </h3>
-                    <p class="mt-3 max-w-3xl text-sm leading-6 text-gray-600">
-                        L’authentification, l’organisation et les rôles sont en place.
-                        Les modules métier (stock, ventes, caisse, rapports) seront ajoutés
-                        progressivement. Aucune donnée commerciale n’est affichée à ce stade.
-                    </p>
-                    <p class="mt-4 text-xs text-gray-500">
-                        Session sécurisée : expiration après 5 minutes d’inactivité.
-                    </p>
-                </section>
+                <div v-if="canViewCatalog" class="mt-6 grid gap-6 md:grid-cols-3">
+                    <Link :href="route('products.index')" class="rounded-xl border border-brand-gold/40 bg-white p-6 shadow-sm">
+                        <h3 class="text-sm font-semibold uppercase tracking-wide text-brand-gold">Articles actifs</h3>
+                        <p class="mt-3 text-3xl font-semibold text-brand-navy">{{ catalog.active_products }}</p>
+                    </Link>
+                    <Link :href="route('stocks.boutique')" class="rounded-xl border border-brand-gold/40 bg-white p-6 shadow-sm">
+                        <h3 class="text-sm font-semibold uppercase tracking-wide text-brand-gold">Stock boutique</h3>
+                        <p class="mt-3 text-3xl font-semibold text-brand-navy">{{ catalog.boutique_quantity }}</p>
+                        <p class="mt-1 text-xs text-gray-500">Disponible à la vente</p>
+                    </Link>
+                    <Link :href="route('stocks.depot')" class="rounded-xl border border-brand-navy/20 bg-white p-6 shadow-sm">
+                        <h3 class="text-sm font-semibold uppercase tracking-wide text-brand-navy">Stock dépôt</h3>
+                        <p class="mt-3 text-3xl font-semibold text-brand-navy">{{ catalog.depot_quantity }}</p>
+                        <p class="mt-1 text-xs text-gray-500">Non disponible à la vente</p>
+                    </Link>
+                </div>
             </div>
         </div>
     </AuthenticatedLayout>

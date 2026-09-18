@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
@@ -12,6 +12,7 @@ const page = usePage();
 const user = page.props.auth.user;
 const organization = page.props.organization;
 const brand = page.props.brand;
+const canSearch = computed(() => Boolean(user?.permissions.includes('search_products')));
 </script>
 
 <template>
@@ -36,17 +37,52 @@ const brand = page.props.brand;
                             </Link>
                         </div>
 
-                        <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                        <div class="hidden space-x-5 lg:-my-px lg:ms-8 lg:flex">
                             <NavLink
                                 :href="route('dashboard')"
                                 :active="route().current('dashboard')"
                             >
                                 Tableau de bord
                             </NavLink>
+                            <NavLink
+                                v-if="canSearch"
+                                :href="route('products.index')"
+                                :active="route().current('products.*')"
+                            >
+                                Articles
+                            </NavLink>
+                            <NavLink
+                                v-if="canSearch"
+                                :href="route('stocks.boutique')"
+                                :active="route().current('stocks.boutique')"
+                            >
+                                Boutique
+                            </NavLink>
+                            <NavLink
+                                v-if="canSearch"
+                                :href="route('stocks.depot')"
+                                :active="route().current('stocks.depot')"
+                            >
+                                Dépôt
+                            </NavLink>
+                            <NavLink
+                                v-if="canSearch"
+                                :href="route('stocks.overview')"
+                                :active="route().current('stocks.overview')"
+                            >
+                                Stocks
+                            </NavLink>
+                            <NavLink
+                                v-if="canSearch"
+                                :href="route('stocks.movements')"
+                                :active="route().current('stocks.movements')"
+                            >
+                                Mouvements
+                            </NavLink>
                         </div>
                     </div>
 
-                    <div class="hidden sm:ms-6 sm:flex sm:items-center">
+                    <div class="hidden lg:ms-6 lg:flex lg:items-center">
                         <div class="relative ms-3">
                             <Dropdown align="right" width="48">
                                 <template #trigger>
@@ -88,7 +124,7 @@ const brand = page.props.brand;
                         </div>
                     </div>
 
-                    <div class="-me-2 flex items-center sm:hidden">
+                    <div class="-me-2 flex items-center lg:hidden">
                         <button
                             @click="showingNavigationDropdown = !showingNavigationDropdown"
                             class="inline-flex items-center justify-center rounded-md p-2 text-brand-cream transition duration-150 ease-in-out hover:bg-brand-navy-deep hover:text-white focus:outline-none"
@@ -125,16 +161,51 @@ const brand = page.props.brand;
                     block: showingNavigationDropdown,
                     hidden: !showingNavigationDropdown,
                 }"
-                class="bg-brand-navy-deep sm:hidden"
+                class="bg-brand-navy-deep lg:hidden"
             >
-                <div class="space-y-1 pb-3 pt-2">
-                    <ResponsiveNavLink
-                        :href="route('dashboard')"
-                        :active="route().current('dashboard')"
-                    >
-                        Tableau de bord
-                    </ResponsiveNavLink>
-                </div>
+                    <div class="space-y-1 pb-3 pt-2">
+                        <ResponsiveNavLink
+                            :href="route('dashboard')"
+                            :active="route().current('dashboard')"
+                        >
+                            Tableau de bord
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            v-if="canSearch"
+                            :href="route('products.index')"
+                            :active="route().current('products.*')"
+                        >
+                            Articles
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            v-if="canSearch"
+                            :href="route('stocks.boutique')"
+                            :active="route().current('stocks.boutique')"
+                        >
+                            Boutique
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            v-if="canSearch"
+                            :href="route('stocks.depot')"
+                            :active="route().current('stocks.depot')"
+                        >
+                            Dépôt
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            v-if="canSearch"
+                            :href="route('stocks.overview')"
+                            :active="route().current('stocks.overview')"
+                        >
+                            Stocks
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            v-if="canSearch"
+                            :href="route('stocks.movements')"
+                            :active="route().current('stocks.movements')"
+                        >
+                            Mouvements
+                        </ResponsiveNavLink>
+                    </div>
 
                 <div class="border-t border-brand-gold/30 pb-1 pt-4">
                     <div class="px-4">

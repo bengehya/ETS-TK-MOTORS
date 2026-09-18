@@ -32,4 +32,7 @@ export type PageProps<
     organization: Organization | null;
     brand: Brand;
     canRegister: boolean;
+    flash: {
+        status: string | null;
+    };
 };
