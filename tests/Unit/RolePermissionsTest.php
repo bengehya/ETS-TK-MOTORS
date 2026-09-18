@@ -16,6 +16,8 @@ class RolePermissionsTest extends TestCase
         $this->assertFalse(RolePermissions::allows(Role::Employe, Permission::ValidateStockReceipts));
         $this->assertFalse(RolePermissions::allows(Role::Employe, Permission::ViewAudit));
         $this->assertTrue(RolePermissions::allows(Role::Employe, Permission::CreateSales));
+        $this->assertTrue(RolePermissions::allows(Role::Employe, Permission::RecordStockReceipts));
+        $this->assertTrue(RolePermissions::allows(Role::BossSecondaire, Permission::ValidateStockReceipts));
     }
 
     public function test_the_principal_boss_can_invite_another_boss(): void

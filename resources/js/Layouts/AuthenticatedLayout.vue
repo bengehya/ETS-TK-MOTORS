@@ -13,6 +13,7 @@ const user = page.props.auth.user;
 const organization = page.props.organization;
 const brand = page.props.brand;
 const canSearch = computed(() => Boolean(user?.permissions.includes('search_products')));
+const canRecordArrivals = computed(() => Boolean(user?.permissions.includes('record_stock_receipts')));
 </script>
 
 <template>
@@ -50,6 +51,13 @@ const canSearch = computed(() => Boolean(user?.permissions.includes('search_prod
                                 :active="route().current('products.*')"
                             >
                                 Articles
+                            </NavLink>
+                            <NavLink
+                                v-if="canRecordArrivals"
+                                :href="route('arrivals.index')"
+                                :active="route().current('arrivals.*')"
+                            >
+                                Arrivages
                             </NavLink>
                             <NavLink
                                 v-if="canSearch"
@@ -176,6 +184,13 @@ const canSearch = computed(() => Boolean(user?.permissions.includes('search_prod
                             :active="route().current('products.*')"
                         >
                             Articles
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            v-if="canRecordArrivals"
+                            :href="route('arrivals.index')"
+                            :active="route().current('arrivals.*')"
+                        >
+                            Arrivages
                         </ResponsiveNavLink>
                         <ResponsiveNavLink
                             v-if="canSearch"
