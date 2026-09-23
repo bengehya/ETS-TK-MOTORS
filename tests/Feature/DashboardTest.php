@@ -31,12 +31,15 @@ class DashboardTest extends TestCase
         $response->assertDontSee('chiffre d’affaires', false);
     }
 
-    public function test_authenticated_users_are_redirected_away_from_the_home_page(): void
+    public function test_authenticated_users_see_the_splash_on_the_home_page(): void
     {
         $user = User::factory()->create();
 
         $this->actingAs($user)
             ->get('/')
-            ->assertRedirect(route('dashboard'));
+            ->assertOk()
+            ->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+                ->component('Welcome')
+            );
     }
 }
