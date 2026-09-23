@@ -42,6 +42,10 @@ const rejectForm = useForm({
 });
 
 const submitApprove = () => {
+    if (approveForm.processing) {
+        return;
+    }
+
     confirmingApprove.value = false;
     approveForm.post(route('arrivals.approve', props.arrival.id), {
         preserveScroll: true,
@@ -49,6 +53,10 @@ const submitApprove = () => {
 };
 
 const submitReject = () => {
+    if (rejectForm.processing) {
+        return;
+    }
+
     rejectForm.post(route('arrivals.reject', props.arrival.id), {
         preserveScroll: true,
         onSuccess: () => {
@@ -128,8 +136,20 @@ const submitReject = () => {
                 </section>
 
                 <section v-if="canApprove" class="flex flex-wrap gap-3">
-                    <PrimaryButton type="button" @click="confirmingApprove = true">Valider l’arrivage</PrimaryButton>
-                    <DangerButton type="button" @click="confirmingReject = true">Rejeter l’arrivage</DangerButton>
+                    <PrimaryButton
+                        type="button"
+                        :disabled="approveForm.processing || rejectForm.processing"
+                        @click="confirmingApprove = true"
+                    >
+                        Valider l’arrivage
+                    </PrimaryButton>
+                    <DangerButton
+                        type="button"
+                        :disabled="approveForm.processing || rejectForm.processing"
+                        @click="confirmingReject = true"
+                    >
+                        Rejeter l’arrivage
+                    </DangerButton>
                 </section>
             </div>
         </div>

@@ -8,7 +8,10 @@ let timer: ReturnType<typeof setTimeout> | null = null;
 const continueFromSplash = () => {
     const destination = usePage().props.auth.user ? route('dashboard') : route('login');
 
-    router.visit(destination, { replace: true });
+    router.visit(destination, {
+        replace: true,
+        headers: { 'X-Tk-Skip-Loader': '1' },
+    });
 };
 
 onMounted(() => {

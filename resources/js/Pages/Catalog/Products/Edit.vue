@@ -29,6 +29,10 @@ const form = useForm({
 });
 
 const submit = () => {
+    if (form.processing) {
+        return;
+    }
+
     form.post(route('products.update', props.product.id));
 };
 </script>
