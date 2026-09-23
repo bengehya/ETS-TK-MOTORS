@@ -2,11 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\ArrivalStatus;
-use App\Enums\Permission;
-use App\Models\Arrival;
-use App\Models\Inventory;
-use App\Models\Product;
+use App\Services\DashboardService;
 use App\Services\LocationProvisioner;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -14,35 +10,17 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request, LocationProvisioner $locations): Response
-    {
-        $user = $request->user();
-        $organization = $user->organization;
-        $boutique = $locations->boutique($organization);
-        $depot = $locations->depot($organization);
+    public function __invoke(
+        Request $request,
+        DashboardService $dashboard,
+        LocationProvisioner $locations,
+    ): Response {
+        $periode = $dashboard->normalizePeriode($request->string('periode')->toString());
 
-        return Inertia::render('Dashboard', [
-            'catalog' => [
-                'active_products' => Product::query()
-                    ->forOrganization($organization->id)
-                    ->where('is_active', true)
-                    ->count(),
-                'boutique_quantity' => (int) Inventory::query()->where('location_id', $boutique->id)->sum('quantity'),
-                'depot_quantity' => (int) Inventory::query()->where('location_id', $depot->id)->sum('quantity'),
-            ],
-            'canViewCatalog' => $user->hasPermission(Permission::SearchProducts),
-            'arrivals' => [
-                'pending' => Arrival::query()
-                    ->forOrganization($organization->id)
-                    ->when(
-                        ! $user->hasPermission(Permission::ValidateStockReceipts),
-                        fn ($query) => $query->where('recorded_by', $user->id),
-                    )
-                    ->where('status', ArrivalStatus::Pending)
-                    ->count(),
-            ],
-            'canRecordArrivals' => $user->hasPermission(Permission::RecordStockReceipts),
-            'canValidateArrivals' => $user->hasPermission(Permission::ValidateStockReceipts),
-        ]);
+        return Inertia::render('Dashboard', $dashboard->payload(
+            $request->user(),
+            $periode,
+            $locations,
+        ));
     }
 }
