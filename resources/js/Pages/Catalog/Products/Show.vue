@@ -6,6 +6,7 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
 type LocationStock = {
     id: number;
@@ -54,20 +55,44 @@ const adjustment = useForm({
 });
 
 const submitReceipt = () => {
+    if (receipt.processing) {
+        return;
+    }
+
     receipt.post(route('products.stock.receive', props.product.id), { preserveScroll: true });
 };
 
 const submitTransfer = () => {
+    if (transfer.processing) {
+        return;
+    }
+
     transfer.post(route('products.stock.transfer', props.product.id), { preserveScroll: true });
 };
 
 const submitAdjustment = () => {
+    if (adjustment.processing) {
+        return;
+    }
+
     adjustment.post(route('products.stock.adjust', props.product.id), { preserveScroll: true });
 };
 
+const statusBusy = ref(false);
+
 const toggleActive = () => {
+    if (statusBusy.value) {
+        return;
+    }
+
+    statusBusy.value = true;
     const namedRoute = props.product.is_active ? 'products.deactivate' : 'products.activate';
-    router.post(route(namedRoute, props.product.id), {}, { preserveScroll: true });
+    router.post(route(namedRoute, props.product.id), {}, {
+        preserveScroll: true,
+        onFinish: () => {
+            statusBusy.value = false;
+        },
+    });
 };
 </script>
 
@@ -88,7 +113,8 @@ const toggleActive = () => {
                     <button
                         v-if="canManage"
                         type="button"
-                        class="rounded-md border border-brand-navy px-4 py-2 text-xs font-semibold uppercase tracking-widest text-brand-navy"
+                        class="rounded-md border border-brand-navy px-4 py-2 text-xs font-semibold uppercase tracking-widest text-brand-navy disabled:pointer-events-none disabled:opacity-50"
+                        :disabled="statusBusy"
                         @click="toggleActive"
                     >
                         {{ product.is_active ? 'Désactiver' : 'Réactiver' }}

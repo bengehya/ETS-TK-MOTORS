@@ -19,6 +19,10 @@ const form = useForm({
 });
 
 const submit = () => {
+    if (form.processing) {
+        return;
+    }
+
     form.post(route('arrivals.store'));
 };
 </script>

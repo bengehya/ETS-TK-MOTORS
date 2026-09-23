@@ -18,6 +18,10 @@ const form = useForm({
 });
 
 const submit = () => {
+    if (form.processing) {
+        return;
+    }
+
     form.post(route('login'), {
         onFinish: () => {
             form.reset('password');
