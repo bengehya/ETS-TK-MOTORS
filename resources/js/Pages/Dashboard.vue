@@ -103,7 +103,7 @@ const brand = page.props.brand;
                         <StatCard title="Articles les plus vendus">
                             <EmptyState v-if="finance.top_sold.length === 0" message="Aucune vente enregistrée." />
                             <ul v-else class="space-y-2 text-sm text-brand-navy">
-                                <li v-for="item in finance.top_sold" :key="item.id ?? item.code">
+                                <li v-for="item in finance.top_sold" :key="String(item.id ?? item.code)">
                                     <span class="font-semibold">{{ item.name }}</span>
                                     <span class="text-gray-500"> · {{ item.code }} · {{ item.quantity_sold }} vendu(s)</span>
                                 </li>
@@ -112,7 +112,7 @@ const brand = page.props.brand;
                         <StatCard title="Articles les moins vendus">
                             <EmptyState v-if="finance.least_sold.length === 0" message="Aucune vente enregistrée." />
                             <ul v-else class="space-y-2 text-sm text-brand-navy">
-                                <li v-for="item in finance.least_sold" :key="item.id ?? item.code">
+                                <li v-for="item in finance.least_sold" :key="String(item.id ?? item.code)">
                                     <span class="font-semibold">{{ item.name }}</span>
                                     <span class="text-gray-500"> · {{ item.code }} · {{ item.quantity_sold }} vendu(s)</span>
                                 </li>
@@ -153,7 +153,7 @@ const brand = page.props.brand;
                     </div>
                     <StatCard v-if="stock.exhausted.count > 0" title="Articles épuisés en boutique">
                         <ul class="space-y-2 text-sm text-brand-navy">
-                            <li v-for="item in stock.exhausted.items" :key="item.id ?? item.code">
+                            <li v-for="item in stock.exhausted.items" :key="String(item.id ?? item.code)">
                                 {{ item.name }} <span class="text-gray-500">({{ item.code }})</span>
                             </li>
                         </ul>

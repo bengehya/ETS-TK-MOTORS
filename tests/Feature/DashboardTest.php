@@ -31,7 +31,10 @@ class DashboardTest extends TestCase
         $response->assertSee('Patron Principal', false);
         $response->assertSee('BOSS_PRINCIPAL', false);
         $response->assertSee($user->organization->name, false);
-        $response->assertSee('Le module caisse n’est pas encore disponible', false);
+        $response->assertInertia(fn (Assert $page) => $page
+            ->where('finance.cash.available', false)
+            ->where('finance.cash.amount', null)
+        );
         $response->assertDontSee('chiffre d’affaires', false);
     }
 
