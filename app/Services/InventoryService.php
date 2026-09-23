@@ -37,13 +37,20 @@ class InventoryService
         }
     }
 
-    public function receive(User $user, Product $product, Location $location, int $quantity, ?string $notes = null): StockMovement
-    {
+    public function receive(
+        User $user,
+        Product $product,
+        Location $location,
+        int $quantity,
+        ?string $notes = null,
+        ?string $referenceType = null,
+        ?int $referenceId = null,
+    ): StockMovement {
         $this->assertSameOrganization($user, $product, $location);
         $this->assertPositiveQuantity($quantity);
         $this->assertActiveProduct($product);
 
-        return DB::transaction(function () use ($user, $product, $location, $quantity, $notes): StockMovement {
+        return DB::transaction(function () use ($user, $product, $location, $quantity, $notes, $referenceType, $referenceId): StockMovement {
             $inventory = $this->lockInventory($product, $location);
 
             return $this->applyIncrease(
@@ -52,6 +59,9 @@ class InventoryService
                 StockMovementType::Receipt,
                 $quantity,
                 $notes,
+                null,
+                $referenceType,
+                $referenceId,
             );
         });
     }

@@ -50,4 +50,12 @@ class Organization extends Model
     {
         return $this->hasMany(Product::class);
     }
+
+    /**
+     * @return HasMany<Arrival, $this>
+     */
+    public function arrivals(): HasMany
+    {
+        return $this->hasMany(Arrival::class);
+    }
 }
