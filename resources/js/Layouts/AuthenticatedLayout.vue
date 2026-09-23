@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
+import NavGroup from '@/Components/NavGroup.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
 import { Link, usePage } from '@inertiajs/vue3';
@@ -50,43 +51,28 @@ const canRecordArrivals = computed(() => Boolean(user?.permissions.includes('rec
                                 :href="route('products.index')"
                                 :active="route().current('products.*')"
                             >
-                                Articles
+                                Catalogue
                             </NavLink>
-                            <NavLink
+                            <NavGroup
+                                v-if="canSearch"
+                                label="Stock"
+                                :active="route().current('stocks.*')"
+                            >
+                                <DropdownLink :href="route('stocks.overview')">Vue générale</DropdownLink>
+                                <DropdownLink :href="route('stocks.boutique')">Boutique</DropdownLink>
+                                <DropdownLink :href="route('stocks.depot')">Dépôt</DropdownLink>
+                                <DropdownLink :href="route('stocks.movements')">Mouvements</DropdownLink>
+                            </NavGroup>
+                            <NavGroup
                                 v-if="canRecordArrivals"
-                                :href="route('arrivals.index')"
+                                label="Approvisionnements"
                                 :active="route().current('arrivals.*')"
                             >
-                                Arrivages
-                            </NavLink>
-                            <NavLink
-                                v-if="canSearch"
-                                :href="route('stocks.boutique')"
-                                :active="route().current('stocks.boutique')"
-                            >
-                                Boutique
-                            </NavLink>
-                            <NavLink
-                                v-if="canSearch"
-                                :href="route('stocks.depot')"
-                                :active="route().current('stocks.depot')"
-                            >
-                                Dépôt
-                            </NavLink>
-                            <NavLink
-                                v-if="canSearch"
-                                :href="route('stocks.overview')"
-                                :active="route().current('stocks.overview')"
-                            >
-                                Stocks
-                            </NavLink>
-                            <NavLink
-                                v-if="canSearch"
-                                :href="route('stocks.movements')"
-                                :active="route().current('stocks.movements')"
-                            >
-                                Mouvements
-                            </NavLink>
+                                <DropdownLink :href="route('arrivals.create')">Nouvel arrivage</DropdownLink>
+                                <DropdownLink :href="route('arrivals.pending')">En attente</DropdownLink>
+                                <DropdownLink :href="route('arrivals.history')">Historique</DropdownLink>
+                                <DropdownLink :href="route('arrivals.index')">Tous les arrivages</DropdownLink>
+                            </NavGroup>
                         </div>
                     </div>
 
@@ -178,6 +164,9 @@ const canRecordArrivals = computed(() => Boolean(user?.permissions.includes('rec
                         >
                             Tableau de bord
                         </ResponsiveNavLink>
+                        <p v-if="canSearch" class="px-4 pt-3 text-xs font-semibold uppercase tracking-widest text-brand-gold">
+                            Catalogue
+                        </p>
                         <ResponsiveNavLink
                             v-if="canSearch"
                             :href="route('products.index')"
@@ -185,12 +174,15 @@ const canRecordArrivals = computed(() => Boolean(user?.permissions.includes('rec
                         >
                             Articles
                         </ResponsiveNavLink>
+                        <p v-if="canSearch" class="px-4 pt-3 text-xs font-semibold uppercase tracking-widest text-brand-gold">
+                            Stock
+                        </p>
                         <ResponsiveNavLink
-                            v-if="canRecordArrivals"
-                            :href="route('arrivals.index')"
-                            :active="route().current('arrivals.*')"
+                            v-if="canSearch"
+                            :href="route('stocks.overview')"
+                            :active="route().current('stocks.overview')"
                         >
-                            Arrivages
+                            Vue générale
                         </ResponsiveNavLink>
                         <ResponsiveNavLink
                             v-if="canSearch"
@@ -208,17 +200,34 @@ const canRecordArrivals = computed(() => Boolean(user?.permissions.includes('rec
                         </ResponsiveNavLink>
                         <ResponsiveNavLink
                             v-if="canSearch"
-                            :href="route('stocks.overview')"
-                            :active="route().current('stocks.overview')"
-                        >
-                            Stocks
-                        </ResponsiveNavLink>
-                        <ResponsiveNavLink
-                            v-if="canSearch"
                             :href="route('stocks.movements')"
                             :active="route().current('stocks.movements')"
                         >
                             Mouvements
+                        </ResponsiveNavLink>
+                        <p v-if="canRecordArrivals" class="px-4 pt-3 text-xs font-semibold uppercase tracking-widest text-brand-gold">
+                            Approvisionnements
+                        </p>
+                        <ResponsiveNavLink
+                            v-if="canRecordArrivals"
+                            :href="route('arrivals.create')"
+                            :active="route().current('arrivals.create')"
+                        >
+                            Nouvel arrivage
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            v-if="canRecordArrivals"
+                            :href="route('arrivals.pending')"
+                            :active="route().current('arrivals.pending')"
+                        >
+                            En attente
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            v-if="canRecordArrivals"
+                            :href="route('arrivals.history')"
+                            :active="route().current('arrivals.history')"
+                        >
+                            Historique
                         </ResponsiveNavLink>
                     </div>
 
