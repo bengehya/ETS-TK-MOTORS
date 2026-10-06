@@ -64,11 +64,10 @@ L’application répond en localhost et derrière un tunnel HTTPS, par exemple n
 2. Laisser `TRUSTED_PROXIES=*` en local. En production, indiquer l’adresse réelle du proxy, ou laisser la variable vide si l’application est jointe directement.
 3. Ne pas définir `SESSION_SECURE_COOKIE` : le cookie est Secure uniquement lorsque la requête est en HTTPS.
 4. Ne pas définir `ASSET_URL` ni `VITE_DEV_SERVER_URL` avec une URL de tunnel.
-5. Compiler les assets, puis retirer `public/hot` s’il a été créé par `npm run dev` :
+5. Compiler les assets au moins une fois. Si `npm run dev` tourne, `public/hot` peut rester : localhost continue d’utiliser le serveur Vite, et une page HTTPS utilise les fichiers de `public/build`.
 
 ```bash
 npm run build
-rm -f public/hot
 php artisan serve
 ```
 

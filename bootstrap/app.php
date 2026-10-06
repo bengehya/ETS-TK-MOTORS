@@ -7,6 +7,7 @@ use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\RefreshZiggyRoutes;
 use App\Http\Middleware\TerminateIdleSession;
+use App\Http\Middleware\UseBuiltViteAssetsWhenDevServerIsUnsafe;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -37,6 +38,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(prepend: [
             AlignSessionCookieSecurity::class,
             RefreshZiggyRoutes::class,
+            UseBuiltViteAssetsWhenDevServerIsUnsafe::class,
         ], append: [
             TerminateIdleSession::class,
             HandleInertiaRequests::class,
