@@ -31,6 +31,7 @@ final class RolePermissions
             Permission::ManageExpenses,
             Permission::ViewReports,
             Permission::ViewAudit,
+            Permission::ManageRentals,
             Permission::SearchProducts,
             Permission::ScanProducts,
             Permission::RecordStockReceipts,

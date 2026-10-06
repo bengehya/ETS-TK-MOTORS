@@ -8,7 +8,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Catalog\StoreProductRequest;
 use App\Http\Requests\Catalog\UpdateProductRequest;
 use App\Models\Product;
+use App\Services\AuditLogger;
 use App\Support\CatalogPresenter;
+use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -139,7 +141,14 @@ class ProductController extends Controller
 
     public function update(UpdateProductRequest $request, Product $product): RedirectResponse
     {
+        $before = $this->priceSnapshot($product);
         $product->update($request->validated());
+        $product->refresh();
+        $after = $this->priceSnapshot($product);
+
+        if ($before !== $after) {
+            app(AuditLogger::class)->record($request->user(), 'product.price_changed', $product, $before, $after);
+        }
 
         return redirect()
             ->route('products.show', $product)
@@ -152,6 +161,12 @@ class ProductController extends Controller
 
         $product->update(['is_active' => false]);
 
+        app(AuditLogger::class)->record($request->user(), 'product.deactivated', $product, [
+            'is_active' => true,
+        ], [
+            'is_active' => false,
+        ]);
+
         return back()->with('status', 'Article désactivé. L’historique est conservé.');
     }
 
@@ -161,6 +176,23 @@ class ProductController extends Controller
 
         $product->update(['is_active' => true]);
 
+        app(AuditLogger::class)->record($request->user(), 'product.activated', $product, [
+            'is_active' => false,
+        ], [
+            'is_active' => true,
+        ]);
+
         return back()->with('status', 'Article réactivé.');
+    }
+
+    /**
+     * @return array{purchase_price: ?string, sale_price: string}
+     */
+    private function priceSnapshot(Product $product): array
+    {
+        return [
+            'purchase_price' => $product->purchase_price === null ? null : Money::normalize($product->purchase_price),
+            'sale_price' => Money::normalize($product->sale_price),
+        ];
     }
 }

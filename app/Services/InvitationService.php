@@ -61,6 +61,12 @@ class InvitationService
             'expires_at' => now()->addDays(7),
         ]);
 
+        app(AuditLogger::class)->record($inviter, 'invitation.created', $invitation, null, [
+            'email' => $email,
+            'role' => $role->value,
+            'civility' => $invitation->civility->value,
+        ]);
+
         return [
             'invitation' => $invitation,
             'url' => route('invitations.accept', ['token' => $plainToken]),
@@ -80,6 +86,11 @@ class InvitationService
         }
 
         $invitation->forceFill(['revoked_at' => now()])->save();
+
+        app(AuditLogger::class)->record($actor, 'invitation.revoked', $invitation, null, [
+            'email' => $invitation->email,
+            'role' => $invitation->role->value,
+        ]);
     }
 
     public function accept(string $token, string $password): User
@@ -126,6 +137,12 @@ class InvitationService
             ]);
 
             $locked->forceFill(['accepted_at' => now()])->save();
+
+            app(AuditLogger::class)->record($user, 'invitation.accepted', $locked, null, [
+                'email' => $user->email,
+                'role' => $user->role->value,
+                'user_id' => $user->id,
+            ]);
 
             return $user;
         });

@@ -28,6 +28,7 @@ class Product extends Model
         'description',
         'purchase_price',
         'sale_price',
+        'low_stock_threshold',
         'is_active',
         'created_by',
     ];
@@ -40,6 +41,7 @@ class Product extends Model
         return [
             'purchase_price' => 'decimal:2',
             'sale_price' => 'decimal:2',
+            'low_stock_threshold' => 'integer',
             'is_active' => 'boolean',
         ];
     }
@@ -97,6 +99,14 @@ class Product extends Model
     public function stockMovements(): HasMany
     {
         return $this->hasMany(StockMovement::class);
+    }
+
+    /**
+     * @return HasMany<Sale, $this>
+     */
+    public function sales(): HasMany
+    {
+        return $this->hasMany(Sale::class);
     }
 
     public function scopeForOrganization(Builder $query, int $organizationId): Builder

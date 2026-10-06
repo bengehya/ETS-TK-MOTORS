@@ -10,6 +10,7 @@ use App\Exceptions\UnsellableLocationException;
 use App\Models\Inventory;
 use App\Models\Location;
 use App\Models\Product;
+use App\Models\Sale;
 use App\Models\StockMovement;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -54,7 +55,7 @@ class InventoryService
         return DB::transaction(function () use ($user, $product, $location, $quantity, $notes, $referenceType, $referenceId): StockMovement {
             $inventory = $this->lockInventory($product, $location);
 
-            return $this->applyIncrease(
+            $movement = $this->applyIncrease(
                 $inventory,
                 $user,
                 StockMovementType::Receipt,
@@ -64,6 +65,16 @@ class InventoryService
                 $referenceType,
                 $referenceId,
             );
+
+            app(AuditLogger::class)->record($user, 'stock.receipt', $movement, null, [
+                'product_id' => $product->id,
+                'location_id' => $location->id,
+                'quantity' => $quantity,
+                'quantity_before' => $movement->quantity_before,
+                'quantity_after' => $movement->quantity_after,
+            ]);
+
+            return $movement;
         });
     }
 
@@ -112,6 +123,16 @@ class InventoryService
                 $groupId,
             );
 
+            app(AuditLogger::class)->record($user, 'stock.transfer', $in, [
+                'depot_quantity_before' => $out->quantity_before,
+                'boutique_quantity_before' => $in->quantity_before,
+            ], [
+                'product_id' => $product->id,
+                'quantity' => $quantity,
+                'depot_quantity_after' => $out->quantity_after,
+                'boutique_quantity_after' => $in->quantity_after,
+            ]);
+
             return ['out' => $out, 'in' => $in];
         });
     }
@@ -148,11 +169,23 @@ class InventoryService
             $notes .= ' — '.$reason;
         }
 
-        return DB::transaction(function () use ($user, $product, $location, $quantity, $direction, $notes, $motif): StockMovement {
+        return DB::transaction(function () use ($user, $product, $location, $quantity, $direction, $notes, $motif, $reason): StockMovement {
             $inventory = $this->lockInventory($product, $location);
 
-            if ($direction === 'increase') {
-                return $this->applyIncrease(
+            $movement = $direction === 'increase'
+                ? $this->applyIncrease(
+                    $inventory,
+                    $user,
+                    StockMovementType::Adjustment,
+                    $quantity,
+                    $notes,
+                    null,
+                    null,
+                    null,
+                    $direction,
+                    $motif,
+                )
+                : $this->applyDecrease(
                     $inventory,
                     $user,
                     StockMovementType::Adjustment,
@@ -164,20 +197,19 @@ class InventoryService
                     $direction,
                     $motif,
                 );
-            }
 
-            return $this->applyDecrease(
-                $inventory,
-                $user,
-                StockMovementType::Adjustment,
-                $quantity,
-                $notes,
-                null,
-                null,
-                null,
-                $direction,
-                $motif,
-            );
+            app(AuditLogger::class)->record($user, 'stock.adjustment', $movement, [
+                'quantity_before' => $movement->quantity_before,
+            ], [
+                'product_id' => $product->id,
+                'location_id' => $location->id,
+                'direction' => $direction,
+                'quantity' => $quantity,
+                'quantity_after' => $movement->quantity_after,
+                'motif' => $motif->value,
+            ], $reason);
+
+            return $movement;
         });
     }
 
@@ -209,7 +241,7 @@ class InventoryService
         return DB::transaction(function () use ($user, $product, $boutique, $quantity, $referenceType, $referenceId): StockMovement {
             $inventory = $this->lockInventory($product, $boutique);
 
-            return $this->applyDecrease(
+            $movement = $this->applyDecrease(
                 $inventory,
                 $user,
                 StockMovementType::Sale,
@@ -219,6 +251,55 @@ class InventoryService
                 $referenceType,
                 $referenceId,
             );
+
+            app(AuditLogger::class)->record($user, 'stock.sale', $movement, null, [
+                'product_id' => $product->id,
+                'quantity' => $quantity,
+                'quantity_before' => $movement->quantity_before,
+                'quantity_after' => $movement->quantity_after,
+            ]);
+
+            return $movement;
+        });
+    }
+
+    /**
+     * Restaure exactement la quantité vendue. Ce n'est pas un ajustement exceptionnel.
+     */
+    public function restoreCancelledSale(
+        User $user,
+        Product $product,
+        int $quantity,
+        int $saleId,
+        string $reason,
+    ): StockMovement {
+        $this->assertPositiveQuantity($quantity);
+
+        $boutique = app(LocationProvisioner::class)->boutique($user->organization);
+        $this->assertSameOrganization($user, $product, $boutique);
+
+        return DB::transaction(function () use ($user, $product, $boutique, $quantity, $saleId, $reason): StockMovement {
+            $inventory = $this->lockInventory($product, $boutique);
+
+            $movement = $this->applyIncrease(
+                $inventory,
+                $user,
+                StockMovementType::SaleReturn,
+                $quantity,
+                'Restauration après annulation de vente — '.$reason,
+                null,
+                Sale::class,
+                $saleId,
+            );
+
+            app(AuditLogger::class)->record($user, 'stock.sale_return', $movement, null, [
+                'sale_id' => $saleId,
+                'quantity' => $quantity,
+                'quantity_before' => $movement->quantity_before,
+                'quantity_after' => $movement->quantity_after,
+            ], $reason);
+
+            return $movement;
         });
     }
 

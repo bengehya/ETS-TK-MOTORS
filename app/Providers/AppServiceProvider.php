@@ -4,8 +4,12 @@ namespace App\Providers;
 
 use App\Enums\Permission;
 use App\Models\Arrival;
+use App\Models\CustomerRequest;
+use App\Models\Expense;
 use App\Models\Invitation;
 use App\Models\Product;
+use App\Models\Rental;
+use App\Models\Sale;
 use App\Models\User;
 use App\Policies\ArrivalPolicy;
 use App\Policies\ProductPolicy;
@@ -70,6 +74,46 @@ class AppServiceProvider extends ServiceProvider
             abort_unless($user !== null, 401);
 
             return Arrival::query()
+                ->where('organization_id', $user->organization_id)
+                ->whereKey($value)
+                ->firstOrFail();
+        });
+
+        Route::bind('sale', function (string $value): Sale {
+            $user = request()->user();
+            abort_unless($user !== null, 401);
+
+            return Sale::query()
+                ->where('organization_id', $user->organization_id)
+                ->whereKey($value)
+                ->firstOrFail();
+        });
+
+        Route::bind('expense', function (string $value): Expense {
+            $user = request()->user();
+            abort_unless($user !== null, 401);
+
+            return Expense::query()
+                ->where('organization_id', $user->organization_id)
+                ->whereKey($value)
+                ->firstOrFail();
+        });
+
+        Route::bind('customerRequest', function (string $value): CustomerRequest {
+            $user = request()->user();
+            abort_unless($user !== null, 401);
+
+            return CustomerRequest::query()
+                ->where('organization_id', $user->organization_id)
+                ->whereKey($value)
+                ->firstOrFail();
+        });
+
+        Route::bind('rental', function (string $value): Rental {
+            $user = request()->user();
+            abort_unless($user !== null, 401);
+
+            return Rental::query()
                 ->where('organization_id', $user->organization_id)
                 ->whereKey($value)
                 ->firstOrFail();

@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\User;
 use App\Services\InventoryService;
 use App\Services\LocationProvisioner;
+use App\Services\SaleService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -33,13 +34,13 @@ class DashboardTest extends TestCase
         $response->assertSee('Votre Moto, Notre Passion !', false);
         $response->assertDontSee('Utilisateur connecté', false);
         $response->assertInertia(fn (Assert $page) => $page
-            ->where('finance.cash.available', false)
-            ->where('finance.cash.amount', null)
+            ->where('finance.cash.available', true)
+            ->where('finance.cash.amount', '0.00')
         );
         $response->assertDontSee('chiffre d’affaires', false);
     }
 
-    public function test_a_boss_receives_finance_placeholders_without_invented_amounts(): void
+    public function test_a_boss_sees_real_zero_finance_when_nothing_was_recorded(): void
     {
         $boss = User::factory()->bossPrincipal()->create();
 
@@ -50,15 +51,17 @@ class DashboardTest extends TestCase
                 ->component('Dashboard')
                 ->where('welcome', 'Bienvenue dans TK MOTORS, '.$boss->name)
                 ->where('canViewFinance', true)
-                ->where('finance.sales.available', false)
-                ->where('finance.sales.today_amount', null)
-                ->where('finance.profit.available', false)
-                ->where('finance.profit.amount', null)
-                ->where('finance.cash.available', false)
-                ->where('finance.cash.amount', null)
-                ->where('finance.expenses.available', false)
-                ->where('finance.expenses.total', null)
+                ->where('finance.sales.available', true)
+                ->where('finance.sales.today_amount', '0.00')
+                ->where('finance.profit.available', true)
+                ->where('finance.profit.amount', '0.00')
+                ->where('finance.cash.available', true)
+                ->where('finance.cash.amount', '0.00')
+                ->where('finance.expenses.available', true)
+                ->where('finance.expenses.total', '0.00')
                 ->where('finance.chart.empty', true)
+                ->where('stock.low_stock.threshold_defined', true)
+                ->where('stock.low_stock.count', 0)
                 ->has('finance.top_sold', 0)
                 ->has('stock')
                 ->has('arrivals')
@@ -88,7 +91,7 @@ class DashboardTest extends TestCase
         $this->assertStringNotContainsString('module caisse', $html);
     }
 
-    public function test_a_secondary_boss_can_see_finance_placeholders_but_not_invented_cash(): void
+    public function test_a_secondary_boss_sees_a_real_cash_balance(): void
     {
         $boss = User::factory()->bossSecondaire()->create();
 
@@ -98,33 +101,36 @@ class DashboardTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('welcome', 'Bienvenue dans TK MOTORS, '.$boss->name)
                 ->where('canViewFinance', true)
-                ->where('finance.cash.available', false)
-                ->where('finance.cash.amount', null)
+                ->where('finance.cash.available', true)
+                ->where('finance.cash.amount', '0.00')
             );
     }
 
-    public function test_dashboard_uses_real_sale_movements_for_rankings_without_inventing_amounts(): void
+    public function test_dashboard_uses_completed_sales_for_rankings_and_amounts(): void
     {
         $boss = User::factory()->bossPrincipal()->create();
         $product = Product::factory()->create([
             'organization_id' => $boss->organization_id,
             'name' => 'Plaquette frein',
+            'sale_price' => '25.00',
+            'purchase_price' => '10.00',
         ]);
         $locations = app(LocationProvisioner::class);
-        $service = app(InventoryService::class);
 
-        $service->receive($boss, $product, $locations->boutique($boss->organization), 10, 'Préparation test');
-        $service->consumeForSale($boss, $product, 3);
+        app(InventoryService::class)->receive($boss, $product, $locations->boutique($boss->organization), 10, 'Préparation test');
+        app(SaleService::class)->sell($boss, $product, 3);
 
         $this->actingAs($boss)
             ->get('/dashboard')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('finance.sales.today_quantity', 3)
-                ->where('finance.sales.today_amount', null)
+                ->where('finance.sales.today_amount', '75.00')
+                ->where('finance.profit.amount', '45.00')
+                ->where('finance.cash.amount', '75.00')
                 ->where('finance.top_sold.0.name', 'Plaquette frein')
                 ->where('finance.top_sold.0.quantity_sold', 3)
-                ->where('finance.top_sold.0.amount', null)
+                ->where('finance.top_sold.0.amount', '75.00')
                 ->where('finance.chart.empty', false)
             );
     }

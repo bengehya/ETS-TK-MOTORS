@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Services\AuditLogger;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -60,6 +61,12 @@ class ProfileController extends Controller
         ]);
 
         $user = $request->user();
+
+        app(AuditLogger::class)->record($user, 'user.deleted', $user, [
+            'email' => $user->email,
+            'name' => $user->displayName(),
+            'role' => $user->role->value,
+        ], null, 'Suppression du compte');
 
         Auth::logout();
 

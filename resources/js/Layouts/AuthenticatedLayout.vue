@@ -17,6 +17,12 @@ const brand = page.props.brand;
 const canSearch = computed(() => Boolean(user?.permissions.includes('search_products')));
 const canRecordArrivals = computed(() => Boolean(user?.permissions.includes('record_stock_receipts')));
 const canManageUsers = computed(() => Boolean(user?.permissions.includes('manage_employees')));
+const canSell = computed(() => Boolean(user?.permissions.includes('create_sales')));
+const canManageExpenses = computed(() => Boolean(user?.permissions.includes('manage_expenses')));
+const canRequest = computed(() => Boolean(user?.permissions.includes('create_customer_requests')));
+const canManageRentals = computed(() => Boolean(user?.permissions.includes('manage_rentals')));
+const canViewReports = computed(() => Boolean(user?.permissions.includes('view_reports')));
+const canViewAudit = computed(() => Boolean(user?.permissions.includes('view_audit')));
 </script>
 
 <template>
@@ -55,6 +61,13 @@ const canManageUsers = computed(() => Boolean(user?.permissions.includes('manage
                             >
                                 Catalogue
                             </NavLink>
+                            <NavLink
+                                v-if="canSell"
+                                :href="route('sales.index')"
+                                :active="route().current('sales.*')"
+                            >
+                                Ventes
+                            </NavLink>
                             <NavGroup
                                 v-if="canSearch"
                                 label="Stock"
@@ -65,6 +78,48 @@ const canManageUsers = computed(() => Boolean(user?.permissions.includes('manage
                                 <DropdownLink :href="route('stocks.depot')">Dépôt</DropdownLink>
                                 <DropdownLink :href="route('stocks.movements')">Mouvements</DropdownLink>
                             </NavGroup>
+                            <NavGroup
+                                v-if="canManageExpenses"
+                                label="Finances"
+                                :active="route().current('cash.*') || route().current('expenses.*')"
+                            >
+                                <DropdownLink :href="route('cash.index')">Caisse</DropdownLink>
+                                <DropdownLink :href="route('expenses.index')">Dépenses</DropdownLink>
+                            </NavGroup>
+                            <NavLink
+                                v-if="canRequest"
+                                :href="route('requests.index')"
+                                :active="route().current('requests.*')"
+                            >
+                                Demandes
+                            </NavLink>
+                            <NavLink
+                                v-if="canManageRentals"
+                                :href="route('rentals.index')"
+                                :active="route().current('rentals.*')"
+                            >
+                                Locations
+                            </NavLink>
+                            <NavLink
+                                :href="route('alerts.index')"
+                                :active="route().current('alerts.index')"
+                            >
+                                Alertes
+                            </NavLink>
+                            <NavLink
+                                v-if="canViewReports"
+                                :href="route('savings.show')"
+                                :active="route().current('savings.show')"
+                            >
+                                Épargne
+                            </NavLink>
+                            <NavLink
+                                v-if="canViewAudit"
+                                :href="route('audit.index')"
+                                :active="route().current('audit.index')"
+                            >
+                                Audit
+                            </NavLink>
                             <NavLink
                                 v-if="canManageUsers"
                                 :href="route('users.invitations.index')"
@@ -217,6 +272,61 @@ const canManageUsers = computed(() => Boolean(user?.permissions.includes('manage
                             :active="route().current('stocks.movements')"
                         >
                             Mouvements
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            v-if="canSell"
+                            :href="route('sales.index')"
+                            :active="route().current('sales.*')"
+                        >
+                            Ventes
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            v-if="canManageExpenses"
+                            :href="route('cash.index')"
+                            :active="route().current('cash.*')"
+                        >
+                            Caisse
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            v-if="canManageExpenses"
+                            :href="route('expenses.index')"
+                            :active="route().current('expenses.*')"
+                        >
+                            Dépenses
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            v-if="canRequest"
+                            :href="route('requests.index')"
+                            :active="route().current('requests.*')"
+                        >
+                            Demandes
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            v-if="canManageRentals"
+                            :href="route('rentals.index')"
+                            :active="route().current('rentals.*')"
+                        >
+                            Locations
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('alerts.index')"
+                            :active="route().current('alerts.index')"
+                        >
+                            Alertes
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            v-if="canViewReports"
+                            :href="route('savings.show')"
+                            :active="route().current('savings.show')"
+                        >
+                            Épargne
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            v-if="canViewAudit"
+                            :href="route('audit.index')"
+                            :active="route().current('audit.index')"
+                        >
+                            Audit
                         </ResponsiveNavLink>
                         <ResponsiveNavLink
                             v-if="canManageUsers"
