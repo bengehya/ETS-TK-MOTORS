@@ -15,7 +15,7 @@ class CatalogPresenter
     /**
      * @return array<string, mixed>
      */
-    public static function product(Product $product, bool $withStock = true): array
+    public static function product(Product $product, bool $withStock = true, bool $includePurchasePrice = false): array
     {
         $payload = [
             'id' => $product->id,
@@ -27,6 +27,10 @@ class CatalogPresenter
             'sale_price' => $product->sale_price,
             'is_active' => $product->is_active,
         ];
+
+        if ($includePurchasePrice) {
+            $payload['purchase_price'] = $product->purchase_price;
+        }
 
         if ($withStock) {
             $inventories = $product->relationLoaded('inventories')
@@ -92,6 +96,10 @@ class CatalogPresenter
             'id' => $movement->id,
             'type' => $movement->type->value,
             'type_label' => $movement->type->label(),
+            'direction' => $movement->direction ?? self::derivedDirection($movement),
+            'direction_label' => self::directionLabel($movement),
+            'motif' => $movement->adjustment_motif?->value,
+            'motif_label' => $movement->adjustment_motif?->label(),
             'quantity' => $movement->quantity,
             'quantity_before' => $movement->quantity_before,
             'quantity_after' => $movement->quantity_after,
@@ -106,10 +114,27 @@ class CatalogPresenter
             'location' => $movement->relationLoaded('location') && $movement->location
                 ? self::location($movement->location)
                 : null,
-            'user' => $movement->relationLoaded('user') && $movement->user ? [
-                'id' => $movement->user->id,
-                'name' => $movement->user->name,
-            ] : null,
+            'user' => UserPresenter::identity($movement->relationLoaded('user') ? $movement->user : null),
         ];
+    }
+
+    private static function derivedDirection(StockMovement $movement): ?string
+    {
+        if ($movement->type !== StockMovementType::Adjustment || $movement->direction !== null) {
+            return $movement->direction;
+        }
+
+        return $movement->quantity_after >= $movement->quantity_before ? 'increase' : 'decrease';
+    }
+
+    private static function directionLabel(StockMovement $movement): ?string
+    {
+        $direction = $movement->direction ?? self::derivedDirection($movement);
+
+        return match ($direction) {
+            'increase' => 'Augmentation',
+            'decrease' => 'Diminution',
+            default => null,
+        };
     }
 }

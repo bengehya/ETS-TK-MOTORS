@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Catalog;
 
+use App\Enums\AdjustmentMotif;
 use App\Enums\Permission;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Catalog\StoreProductRequest;
@@ -31,6 +32,7 @@ class ProductController extends Controller
             ->when($request->input('status') === 'inactive', fn ($builder) => $builder->where('is_active', false))
             ->orderBy('name');
 
+        $includePurchasePrice = $request->user()->hasPermission(Permission::UpdatePrices);
         $products = $query->paginate(15)->withQueryString();
 
         $categories = Product::query()
@@ -42,7 +44,7 @@ class ProductController extends Controller
 
         return Inertia::render('Catalog/Products/Index', [
             'products' => [
-                'data' => $products->getCollection()->map(fn (Product $product) => CatalogPresenter::product($product))->all(),
+                'data' => $products->getCollection()->map(fn (Product $product) => CatalogPresenter::product($product, true, $includePurchasePrice))->all(),
                 'links' => $products->linkCollection()->toArray(),
                 'meta' => [
                     'current_page' => $products->currentPage(),
@@ -59,6 +61,7 @@ class ProductController extends Controller
             ],
             'categories' => $categories,
             'canManage' => $request->user()->can('create', Product::class),
+            'canViewPurchasePrice' => $includePurchasePrice,
         ]);
     }
 
@@ -102,10 +105,15 @@ class ProductController extends Controller
         $product->load(['inventories.location']);
 
         return Inertia::render('Catalog/Products/Show', [
-            'product' => CatalogPresenter::product($product),
+            'product' => CatalogPresenter::product($product, true, $request->user()->can('updatePrice', $product)),
             'canManage' => $request->user()->can('update', $product),
             'canMutateStock' => $request->user()->can('mutateStock', $product),
             'canUpdatePrice' => $request->user()->can('updatePrice', $product),
+            'canViewPurchasePrice' => $request->user()->can('updatePrice', $product),
+            'adjustmentMotifs' => collect(AdjustmentMotif::cases())->map(fn (AdjustmentMotif $motif) => [
+                'value' => $motif->value,
+                'label' => $motif->label(),
+            ])->values(),
         ]);
     }
 
@@ -123,7 +131,7 @@ class ProductController extends Controller
             ->values();
 
         return Inertia::render('Catalog/Products/Edit', [
-            'product' => CatalogPresenter::product($product),
+            'product' => CatalogPresenter::product($product, true, $request->user()->can('updatePrice', $product)),
             'categories' => $categories,
             'canUpdatePrice' => $request->user()->can('updatePrice', $product),
         ]);

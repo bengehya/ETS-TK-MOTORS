@@ -5,6 +5,7 @@ import PeriodTabs from '@/Components/Dashboard/PeriodTabs.vue';
 import SalesChart from '@/Components/Dashboard/SalesChart.vue';
 import StatCard from '@/Components/Dashboard/StatCard.vue';
 import UnavailableModule from '@/Components/Dashboard/UnavailableModule.vue';
+import UserAvatar from '@/Components/UserAvatar.vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 
 type ArrivalRow = {
@@ -17,6 +18,11 @@ type ArrivalRow = {
 };
 
 defineProps<{
+    welcome: string;
+    profile: {
+        name: string;
+        photo_url: string | null;
+    };
     periode: string;
     periodes: { value: string; label: string }[];
     canViewCatalog: boolean;
@@ -47,8 +53,6 @@ defineProps<{
 }>();
 
 const page = usePage();
-const user = page.props.auth.user;
-const organization = page.props.organization;
 const brand = page.props.brand;
 </script>
 
@@ -67,20 +71,17 @@ const brand = page.props.brand;
 
         <div class="py-8">
             <div class="mx-auto max-w-7xl space-y-8 px-4 sm:px-6 lg:px-8">
-                <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-                    <StatCard title="Utilisateur connecté">
-                        <p class="text-xl font-semibold text-brand-navy">{{ user?.name }}</p>
-                        <p class="mt-1 text-sm text-gray-600">{{ user?.email }}</p>
-                    </StatCard>
-                    <StatCard title="Rôle">
-                        <p class="text-xl font-semibold text-brand-navy">{{ user?.role_label }}</p>
-                        <p class="mt-1 font-mono text-sm text-gray-600">{{ user?.role }}</p>
-                    </StatCard>
-                    <StatCard title="Organisation">
-                        <p class="text-xl font-semibold text-brand-navy">{{ organization?.name }}</p>
-                        <p class="mt-1 text-sm text-gray-600">{{ brand.city }}</p>
-                    </StatCard>
-                </div>
+                <section class="rounded-xl border border-brand-gold/40 bg-white p-6 shadow-sm">
+                    <div class="flex flex-col gap-5 sm:flex-row sm:items-center">
+                        <UserAvatar :name="profile.name" :photo-url="profile.photo_url" size="lg" />
+                        <div>
+                            <p class="font-display text-2xl uppercase tracking-[0.06em] text-brand-navy">
+                                {{ welcome }}
+                            </p>
+                            <p class="mt-2 text-sm italic text-brand-gold">{{ brand.slogan }}</p>
+                        </div>
+                    </div>
+                </section>
 
                 <template v-if="canViewFinance && finance">
                     <section class="space-y-4">

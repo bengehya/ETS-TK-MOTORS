@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\Civility;
 use App\Models\Product;
 use App\Models\User;
 use App\Services\InventoryService;
@@ -28,9 +29,9 @@ class DashboardTest extends TestCase
         $response = $this->actingAs($user)->get('/dashboard');
 
         $response->assertOk();
-        $response->assertSee('Patron Principal', false);
-        $response->assertSee('BOSS_PRINCIPAL', false);
-        $response->assertSee($user->organization->name, false);
+        $response->assertSee('Bienvenue dans TK MOTORS, Patron Principal', false);
+        $response->assertSee('Votre Moto, Notre Passion !', false);
+        $response->assertDontSee('Utilisateur connecté', false);
         $response->assertInertia(fn (Assert $page) => $page
             ->where('finance.cash.available', false)
             ->where('finance.cash.amount', null)
@@ -47,6 +48,7 @@ class DashboardTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Dashboard')
+                ->where('welcome', 'Bienvenue dans TK MOTORS, '.$boss->name)
                 ->where('canViewFinance', true)
                 ->where('finance.sales.available', false)
                 ->where('finance.sales.today_amount', null)
@@ -73,6 +75,7 @@ class DashboardTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Dashboard')
                 ->where('canViewFinance', false)
+                ->where('welcome', 'Bienvenue dans TK MOTORS, '.$employee->name)
                 ->missing('finance')
                 ->has('stock')
                 ->has('arrivals')
@@ -93,6 +96,7 @@ class DashboardTest extends TestCase
             ->get('/dashboard')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
+                ->where('welcome', 'Bienvenue dans TK MOTORS, '.$boss->name)
                 ->where('canViewFinance', true)
                 ->where('finance.cash.available', false)
                 ->where('finance.cash.amount', null)
@@ -138,6 +142,42 @@ class DashboardTest extends TestCase
             ->get('/dashboard?periode=semaine')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page->where('periode', 'semaine'));
+    }
+
+    public function test_welcome_uses_civility_only_when_it_was_provided(): void
+    {
+        $boss = User::factory()->bossPrincipal()->create([
+            'name' => 'Tresor Kalumbi',
+            'first_name' => 'Tresor',
+            'last_name' => 'Kalumbi',
+            'email' => 'madame.kalumbi@tkmotors.test',
+            'civility' => null,
+        ]);
+
+        $this->actingAs($boss)
+            ->get('/dashboard')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('welcome', 'Bienvenue dans TK MOTORS, Tresor Kalumbi')
+            );
+
+        $boss->forceFill(['civility' => Civility::Monsieur])->save();
+
+        $this->actingAs($boss)
+            ->get('/dashboard')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('welcome', 'Bienvenue dans TK MOTORS, Monsieur Tresor Kalumbi')
+            );
+
+        $boss->forceFill(['civility' => Civility::Madame])->save();
+
+        $this->actingAs($boss)
+            ->get('/dashboard')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('welcome', 'Bienvenue dans TK MOTORS, Madame Tresor Kalumbi')
+            );
     }
 
     public function test_authenticated_users_see_the_splash_on_the_home_page(): void

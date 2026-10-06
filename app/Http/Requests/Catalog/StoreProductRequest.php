@@ -46,6 +46,7 @@ class StoreProductRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'category' => ['required', 'string', 'max:100'],
             'description' => ['nullable', 'string', 'max:2000'],
+            'purchase_price' => ['required', 'numeric', 'min:0', 'decimal:0,2'],
             'sale_price' => ['required', 'numeric', 'min:0', 'decimal:0,2'],
         ];
     }

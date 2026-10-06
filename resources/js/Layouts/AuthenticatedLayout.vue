@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
+import UserAvatar from '@/Components/UserAvatar.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import NavGroup from '@/Components/NavGroup.vue';
@@ -15,6 +16,7 @@ const organization = page.props.organization;
 const brand = page.props.brand;
 const canSearch = computed(() => Boolean(user?.permissions.includes('search_products')));
 const canRecordArrivals = computed(() => Boolean(user?.permissions.includes('record_stock_receipts')));
+const canManageUsers = computed(() => Boolean(user?.permissions.includes('manage_employees')));
 </script>
 
 <template>
@@ -63,6 +65,13 @@ const canRecordArrivals = computed(() => Boolean(user?.permissions.includes('rec
                                 <DropdownLink :href="route('stocks.depot')">Dépôt</DropdownLink>
                                 <DropdownLink :href="route('stocks.movements')">Mouvements</DropdownLink>
                             </NavGroup>
+                            <NavLink
+                                v-if="canManageUsers"
+                                :href="route('users.invitations.index')"
+                                :active="route().current('users.invitations.*')"
+                            >
+                                Utilisateurs
+                            </NavLink>
                             <NavGroup
                                 v-if="canRecordArrivals"
                                 label="Approvisionnements"
@@ -83,8 +92,9 @@ const canRecordArrivals = computed(() => Boolean(user?.permissions.includes('rec
                                     <span class="inline-flex rounded-md">
                                         <button
                                             type="button"
-                                            class="inline-flex items-center rounded-md border border-brand-gold/40 bg-brand-navy-deep px-3 py-2 text-sm font-medium leading-4 text-brand-cream transition duration-150 ease-in-out hover:border-brand-gold hover:text-white focus:outline-none"
+                                            class="inline-flex items-center gap-2 rounded-md border border-brand-gold/40 bg-brand-navy-deep px-3 py-2 text-sm font-medium leading-4 text-brand-cream transition duration-150 ease-in-out hover:border-brand-gold hover:text-white focus:outline-none"
                                         >
+                                            <UserAvatar v-if="user" :name="user.name" :photo-url="user.photo_url" size="sm" decorative />
                                             {{ user?.name }}
                                             <svg
                                                 class="-me-0.5 ms-2 h-4 w-4"
@@ -103,6 +113,9 @@ const canRecordArrivals = computed(() => Boolean(user?.permissions.includes('rec
                                 </template>
 
                                 <template #content>
+                                    <DropdownLink v-if="canManageUsers" :href="route('users.invitations.index')">
+                                        Utilisateurs
+                                    </DropdownLink>
                                     <DropdownLink :href="route('profile.edit')">
                                         Profil
                                     </DropdownLink>
@@ -205,6 +218,13 @@ const canRecordArrivals = computed(() => Boolean(user?.permissions.includes('rec
                         >
                             Mouvements
                         </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            v-if="canManageUsers"
+                            :href="route('users.invitations.index')"
+                            :active="route().current('users.invitations.*')"
+                        >
+                            Utilisateurs
+                        </ResponsiveNavLink>
                         <p v-if="canRecordArrivals" class="px-4 pt-3 text-xs font-semibold uppercase tracking-widest text-brand-gold">
                             Approvisionnements
                         </p>
@@ -233,7 +253,8 @@ const canRecordArrivals = computed(() => Boolean(user?.permissions.includes('rec
 
                 <div class="border-t border-brand-gold/30 pb-1 pt-4">
                     <div class="px-4">
-                        <div class="text-base font-medium text-white">
+                        <div class="flex items-center gap-3 text-base font-medium text-white">
+                            <UserAvatar v-if="user" :name="user.name" :photo-url="user.photo_url" size="sm" decorative />
                             {{ user?.name }}
                         </div>
                         <div class="text-sm font-medium text-brand-gold">

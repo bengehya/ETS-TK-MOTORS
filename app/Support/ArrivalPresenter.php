@@ -30,18 +30,9 @@ class ArrivalPresenter
             'location' => $arrival->relationLoaded('location') && $arrival->location
                 ? CatalogPresenter::location($arrival->location)
                 : null,
-            'recorder' => $arrival->relationLoaded('recorder') && $arrival->recorder ? [
-                'id' => $arrival->recorder->id,
-                'name' => $arrival->recorder->name,
-            ] : null,
-            'validator' => $arrival->relationLoaded('validator') && $arrival->validator ? [
-                'id' => $arrival->validator->id,
-                'name' => $arrival->validator->name,
-            ] : null,
-            'rejector' => $arrival->relationLoaded('rejector') && $arrival->rejector ? [
-                'id' => $arrival->rejector->id,
-                'name' => $arrival->rejector->name,
-            ] : null,
+            'recorder' => UserPresenter::identity($arrival->relationLoaded('recorder') ? $arrival->recorder : null),
+            'validator' => UserPresenter::identity($arrival->relationLoaded('validator') ? $arrival->validator : null),
+            'rejector' => UserPresenter::identity($arrival->relationLoaded('rejector') ? $arrival->rejector : null),
         ];
     }
 }

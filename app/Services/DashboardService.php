@@ -11,7 +11,9 @@ use App\Models\Product;
 use App\Models\StockMovement;
 use App\Models\User;
 use App\Support\ArrivalPresenter;
+use App\Support\UserPresenter;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class DashboardService
@@ -26,9 +28,11 @@ class DashboardService
         $canViewCatalog = $user->hasPermission(Permission::SearchProducts);
         $canRecordArrivals = $user->hasPermission(Permission::RecordStockReceipts);
         $canValidateArrivals = $user->hasPermission(Permission::ValidateStockReceipts);
-        $canViewFinance = $user->hasPermission(Permission::ViewReports);
+        $canViewFinance = $user->canViewCompanyFinance();
 
         $payload = [
+            'welcome' => UserPresenter::welcome($user),
+            'profile' => UserPresenter::identity($user),
             'periode' => $periode,
             'periodes' => [
                 ['value' => 'jour', 'label' => 'Jour'],
@@ -177,7 +181,7 @@ class DashboardService
             ],
             'profit' => [
                 'available' => false,
-                'reason' => 'Le bénéfice ne peut pas être calculé : aucun coût d’achat ni vente valorisée n’est enregistré.',
+                'reason' => 'Le bénéfice ne peut pas encore être calculé : le module ventes n’enregistre pas encore de ventes valorisées.',
                 'amount' => null,
             ],
             'cash' => [
@@ -230,7 +234,7 @@ class DashboardService
 
     /**
      * @param  array{start: CarbonImmutable, end: CarbonImmutable, label: string}  $range
-     * @param  \Illuminate\Support\Collection<int, StockMovement>  $movements
+     * @param  Collection<int, StockMovement>  $movements
      * @return array<string, mixed>
      */
     private function chart(string $periode, array $range, $movements): array

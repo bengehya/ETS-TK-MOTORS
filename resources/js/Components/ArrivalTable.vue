@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import FlashStatus from '@/Components/FlashStatus.vue';
+import UserIdentity from '@/Components/UserIdentity.vue';
 import PaginationLinks from '@/Components/PaginationLinks.vue';
 import TextInput from '@/Components/TextInput.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
@@ -15,7 +16,7 @@ export type ArrivalRow = {
     created_at: string;
     product: { id: number; code: string; name: string } | null;
     location: { name: string } | null;
-    recorder: { name: string } | null;
+    recorder: { name: string; photo_url?: string | null } | null;
 };
 
 const props = defineProps<{
@@ -100,7 +101,7 @@ const search = () => {
                                     <td class="px-4 py-3">{{ arrival.location?.name }}</td>
                                     <td class="px-4 py-3 font-semibold">{{ arrival.quantity }}</td>
                                     <td class="px-4 py-3">{{ arrival.status_label }}</td>
-                                    <td class="px-4 py-3">{{ arrival.recorder?.name }}</td>
+                                    <td class="px-4 py-3"><UserIdentity :user="arrival.recorder" /></td>
                                 </tr>
                             </tbody>
                         </table>

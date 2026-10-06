@@ -4,10 +4,12 @@ use App\Http\Controllers\Api\MeController;
 use App\Http\Controllers\Catalog\ProductController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProfilePhotoController;
 use App\Http\Controllers\Stock\ProductStockController;
 use App\Http\Controllers\Stock\StockLocationController;
 use App\Http\Controllers\Stock\StockMovementController;
 use App\Http\Controllers\Supply\ArrivalController;
+use App\Http\Controllers\Users\InvitationController;
 use App\Services\BootstrapRegistrationService;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -25,6 +27,16 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::post('/profile/photo', [ProfilePhotoController::class, 'store'])->name('profile.photo.store');
+    Route::delete('/profile/photo', [ProfilePhotoController::class, 'destroy'])->name('profile.photo.destroy');
+    Route::get('/utilisateurs/{member}/photo', [ProfilePhotoController::class, 'show'])->name('users.photo');
+
+    Route::middleware('permission:manage_employees')->group(function () {
+        Route::get('/utilisateurs', [InvitationController::class, 'index'])->name('users.invitations.index');
+        Route::get('/utilisateurs/inviter', [InvitationController::class, 'create'])->name('users.invitations.create');
+        Route::post('/utilisateurs/invitations', [InvitationController::class, 'store'])->name('users.invitations.store');
+        Route::delete('/utilisateurs/invitations/{invitation}', [InvitationController::class, 'destroy'])->name('users.invitations.destroy');
+    });
 
     Route::get('/api/me', MeController::class)->name('api.me');
 

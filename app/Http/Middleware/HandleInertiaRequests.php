@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Services\BootstrapRegistrationService;
+use App\Support\UserPresenter;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -38,7 +39,13 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $user ? [
                     'id' => $user->id,
-                    'name' => $user->name,
+                    'name' => $user->displayName(),
+                    'first_name' => $user->first_name,
+                    'last_name' => $user->last_name,
+                    'civility' => $user->civility?->value,
+                    'civility_label' => $user->civility?->label(),
+                    'photo_url' => $user->profilePhotoUrl(),
+                    'welcome' => UserPresenter::welcome($user),
                     'email' => $user->email,
                     'role' => $user->role->value,
                     'role_label' => $user->role->label(),

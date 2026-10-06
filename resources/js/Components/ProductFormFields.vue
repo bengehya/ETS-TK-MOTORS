@@ -3,11 +3,14 @@ import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 
-defineProps<{
+withDefaults(defineProps<{
     form: any;
     canUpdatePrice: boolean;
     categories: string[];
-}>();
+    requirePurchasePrice?: boolean;
+}>(), {
+    requirePurchasePrice: false,
+});
 </script>
 
 <template>
@@ -49,6 +52,21 @@ defineProps<{
                 rows="3"
             />
             <InputError class="mt-2" :message="form.errors.description" />
+        </div>
+
+        <div v-if="canUpdatePrice">
+            <InputLabel for="purchase_price" value="Prix d'achat" />
+            <TextInput
+                id="purchase_price"
+                v-model="form.purchase_price"
+                type="number"
+                min="0"
+                step="0.01"
+                class="mt-1 block w-full"
+                :required="requirePurchasePrice"
+            />
+            <p class="mt-1 text-xs text-gray-500">Donnée interne, utilisée plus tard pour le bénéfice. Non visible par l’employé.</p>
+            <InputError class="mt-2" :message="form.errors.purchase_price" />
         </div>
 
         <div>

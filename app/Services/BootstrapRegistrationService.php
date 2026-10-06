@@ -30,6 +30,7 @@ class BootstrapRegistrationService
             return User::create([
                 'organization_id' => $organization->id,
                 'name' => $attributes['name'],
+                'civility' => $attributes['civility'],
                 'email' => $attributes['email'],
                 'password' => $attributes['password'],
                 'role' => Role::BossPrincipal,

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import FlashStatus from '@/Components/FlashStatus.vue';
+import UserIdentity from '@/Components/UserIdentity.vue';
 import PaginationLinks from '@/Components/PaginationLinks.vue';
 import TextInput from '@/Components/TextInput.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
@@ -10,6 +11,8 @@ type Movement = {
     id: number;
     type: string;
     type_label: string;
+    direction_label: string | null;
+    motif_label: string | null;
     quantity: number;
     quantity_before: number;
     quantity_after: number;
@@ -17,7 +20,7 @@ type Movement = {
     created_at: string;
     product: { id: number; code: string; name: string } | null;
     location: { name: string; type: string } | null;
-    user: { name: string } | null;
+    user: { name: string; photo_url?: string | null } | null;
 };
 
 const props = defineProps<{
@@ -79,7 +82,7 @@ const search = () => {
                                     <th class="px-4 py-3">Type</th>
                                     <th class="px-4 py-3">Qté</th>
                                     <th class="px-4 py-3">Avant → après</th>
-                                    <th class="px-4 py-3">Utilisateur</th>
+                                    <th class="px-4 py-3">Effectué par</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100">
@@ -94,10 +97,14 @@ const search = () => {
                                         </Link>
                                     </td>
                                     <td class="px-4 py-3">{{ movement.location?.name }}</td>
-                                    <td class="px-4 py-3">{{ movement.type_label }}</td>
+                                    <td class="px-4 py-3">
+                                        {{ movement.type_label }}
+                                        <span v-if="movement.direction_label" class="block text-xs text-gray-500">{{ movement.direction_label }}</span>
+                                        <span v-if="movement.motif_label" class="block text-xs text-gray-500">{{ movement.motif_label }}</span>
+                                    </td>
                                     <td class="px-4 py-3 font-semibold">{{ movement.quantity }}</td>
                                     <td class="px-4 py-3">{{ movement.quantity_before }} → {{ movement.quantity_after }}</td>
-                                    <td class="px-4 py-3">{{ movement.user?.name }}</td>
+                                    <td class="px-4 py-3"><UserIdentity :user="movement.user" /></td>
                                 </tr>
                             </tbody>
                         </table>

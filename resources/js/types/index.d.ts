@@ -3,6 +3,12 @@ export type RoleName = 'BOSS_PRINCIPAL' | 'BOSS_SECONDAIRE' | 'EMPLOYE';
 export interface User {
     id: number;
     name: string;
+    first_name?: string | null;
+    last_name?: string | null;
+    civility?: string | null;
+    civility_label?: string | null;
+    photo_url?: string | null;
+    welcome?: string;
     email: string;
     role: RoleName;
     role_label: string;

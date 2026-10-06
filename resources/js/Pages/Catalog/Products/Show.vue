@@ -22,6 +22,7 @@ const props = defineProps<{
         name: string;
         category: string;
         description: string | null;
+        purchase_price?: string | null;
         sale_price: string;
         is_active: boolean;
         stocks: {
@@ -34,6 +35,8 @@ const props = defineProps<{
     canManage: boolean;
     canMutateStock: boolean;
     canUpdatePrice: boolean;
+    canViewPurchasePrice: boolean;
+    adjustmentMotifs: { value: string; label: string }[];
 }>();
 
 const receipt = useForm({
@@ -51,6 +54,7 @@ const adjustment = useForm({
     location_id: String(props.product.stocks.boutique?.location.id ?? ''),
     direction: 'decrease',
     quantity: '1',
+    motif: '',
     reason: '',
 });
 
@@ -135,6 +139,10 @@ const toggleActive = () => {
                                 <dt class="text-gray-500">Catégorie</dt>
                                 <dd class="font-medium text-brand-navy">{{ product.category }}</dd>
                             </div>
+                            <div v-if="canViewPurchasePrice">
+                                <dt class="text-gray-500">Prix d'achat</dt>
+                                <dd class="font-medium text-brand-navy">{{ product.purchase_price ?? 'Non renseigné' }}</dd>
+                            </div>
                             <div>
                                 <dt class="text-gray-500">Prix de vente</dt>
                                 <dd class="font-medium text-brand-navy">{{ product.sale_price }}</dd>
@@ -211,6 +219,10 @@ const toggleActive = () => {
 
                     <form class="rounded-xl border border-brand-gold/40 bg-white p-6 shadow-sm" @submit.prevent="submitAdjustment">
                         <h3 class="text-sm font-semibold uppercase tracking-wide text-brand-navy">Ajustement exceptionnel</h3>
+                        <p class="mt-2 text-xs text-gray-500">
+                            Correction de stock uniquement : perte, casse, erreur de comptage, différence d’inventaire, pièce retrouvée ou erreur de saisie.
+                            Ce formulaire n’annule pas une vente.
+                        </p>
                         <div class="mt-4 space-y-3">
                             <div>
                                 <InputLabel value="Emplacement" />
@@ -233,7 +245,16 @@ const toggleActive = () => {
                             </div>
                             <div>
                                 <InputLabel value="Motif obligatoire" />
-                                <TextInput v-model="adjustment.reason" type="text" class="mt-1 block w-full" required />
+                                <select v-model="adjustment.motif" class="mt-1 block w-full rounded-md border-gray-300 text-sm" required>
+                                    <option value="" disabled>Choisir un motif</option>
+                                    <option v-for="motif in adjustmentMotifs" :key="motif.value" :value="motif.value">{{ motif.label }}</option>
+                                </select>
+                                <InputError class="mt-2" :message="adjustment.errors.motif" />
+                            </div>
+                            <div>
+                                <InputLabel value="Précision" />
+                                <TextInput v-model="adjustment.reason" type="text" class="mt-1 block w-full" :required="adjustment.motif === 'autre'" />
+                                <p class="mt-1 text-xs text-gray-500">Obligatoire pour « autre correction exceptionnelle ».</p>
                                 <InputError class="mt-2" :message="adjustment.errors.reason" />
                             </div>
                             <PrimaryButton :disabled="adjustment.processing">Ajuster</PrimaryButton>

@@ -56,6 +56,7 @@ class UpdateProductRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'category' => ['required', 'string', 'max:100'],
             'description' => ['nullable', 'string', 'max:2000'],
+            'purchase_price' => ['nullable', 'numeric', 'min:0', 'decimal:0,2'],
             'sale_price' => ['required', 'numeric', 'min:0', 'decimal:0,2'],
         ];
     }
@@ -66,18 +67,32 @@ class UpdateProductRequest extends FormRequest
             function (Validator $validator): void {
                 /** @var Product $product */
                 $product = $this->route('product');
-                $newPrice = $this->input('sale_price');
 
-                if ($newPrice === null) {
+                if ($this->user()?->can('updatePrice', $product)) {
                     return;
                 }
 
-                if (bccomp((string) $product->sale_price, number_format((float) $newPrice, 2, '.', ''), 2) !== 0) {
-                    if (! $this->user()?->can('updatePrice', $product)) {
-                        $validator->errors()->add('sale_price', 'Vous n’êtes pas autorisé à modifier le prix.');
-                    }
+                if ($this->priceChanged($product->sale_price, $this->input('sale_price'))) {
+                    $validator->errors()->add('sale_price', 'Vous n’êtes pas autorisé à modifier le prix.');
+                }
+
+                if ($this->exists('purchase_price') && $this->priceChanged($product->purchase_price, $this->input('purchase_price'))) {
+                    $validator->errors()->add('purchase_price', 'Vous n’êtes pas autorisé à modifier le prix d’achat.');
                 }
             },
         ];
+    }
+
+    private function priceChanged(mixed $current, mixed $incoming): bool
+    {
+        $incomingNormalized = ($incoming === null || $incoming === '')
+            ? null
+            : number_format((float) $incoming, 2, '.', '');
+
+        $currentNormalized = $current === null
+            ? null
+            : number_format((float) $current, 2, '.', '');
+
+        return $incomingNormalized !== $currentNormalized;
     }
 }

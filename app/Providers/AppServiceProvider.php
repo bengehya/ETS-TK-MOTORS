@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Enums\Permission;
 use App\Models\Arrival;
+use App\Models\Invitation;
 use App\Models\Product;
 use App\Models\User;
 use App\Policies\ArrivalPolicy;
@@ -35,6 +36,26 @@ class AppServiceProvider extends ServiceProvider
             abort_unless($user !== null, 401);
 
             return Product::query()
+                ->where('organization_id', $user->organization_id)
+                ->whereKey($value)
+                ->firstOrFail();
+        });
+
+        Route::bind('invitation', function (string $value): Invitation {
+            $user = request()->user();
+            abort_unless($user !== null, 401);
+
+            return Invitation::query()
+                ->where('organization_id', $user->organization_id)
+                ->whereKey($value)
+                ->firstOrFail();
+        });
+
+        Route::bind('member', function (string $value): User {
+            $user = request()->user();
+            abort_unless($user !== null, 401);
+
+            return User::query()
                 ->where('organization_id', $user->organization_id)
                 ->whereKey($value)
                 ->firstOrFail();

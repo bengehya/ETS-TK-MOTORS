@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Services\InventoryService;
+use App\Services\LocationProvisioner;
 use Database\Factories\ProductFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -24,6 +26,7 @@ class Product extends Model
         'name',
         'category',
         'description',
+        'purchase_price',
         'sale_price',
         'is_active',
         'created_by',
@@ -35,6 +38,7 @@ class Product extends Model
     protected function casts(): array
     {
         return [
+            'purchase_price' => 'decimal:2',
             'sale_price' => 'decimal:2',
             'is_active' => 'boolean',
         ];
@@ -58,8 +62,8 @@ class Product extends Model
         });
 
         static::created(function (Product $product): void {
-            app(\App\Services\LocationProvisioner::class)->provision($product->organization);
-            app(\App\Services\InventoryService::class)->initializeForProduct($product);
+            app(LocationProvisioner::class)->provision($product->organization);
+            app(InventoryService::class)->initializeForProduct($product);
         });
     }
 

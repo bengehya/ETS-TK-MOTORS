@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\AdjustmentMotif;
 use App\Enums\StockMovementType;
 use App\Exceptions\InactiveProductException;
 use App\Exceptions\InsufficientStockException;
@@ -115,21 +116,39 @@ class InventoryService
         });
     }
 
-    public function adjust(User $user, Product $product, Location $location, int $quantity, string $direction, string $reason): StockMovement
-    {
+    /**
+     * Correction exceptionnelle de stock : perte, casse, erreur de comptage,
+     * différence d'inventaire, pièce retrouvée, erreur de saisie ou autre écart.
+     *
+     * Ne jamais utiliser cet ajustement pour annuler une vente. Une annulation
+     * devra, dans le module Ventes, annuler la vente, restaurer le stock,
+     * traiter l'argent, conserver l'historique et enregistrer l'utilisateur.
+     */
+    public function adjust(
+        User $user,
+        Product $product,
+        Location $location,
+        int $quantity,
+        string $direction,
+        string $reason,
+        AdjustmentMotif $motif,
+    ): StockMovement {
         $this->assertSameOrganization($user, $product, $location);
         $this->assertPositiveQuantity($quantity);
 
         $reason = trim($reason);
-        if ($reason === '') {
-            throw new InvalidArgumentException('Un motif est obligatoire pour un ajustement.');
-        }
 
         if (! in_array($direction, ['increase', 'decrease'], true)) {
             throw new InvalidArgumentException('Direction d’ajustement invalide.');
         }
 
-        return DB::transaction(function () use ($user, $product, $location, $quantity, $direction, $reason): StockMovement {
+        $notes = $motif->label();
+
+        if ($reason !== '') {
+            $notes .= ' — '.$reason;
+        }
+
+        return DB::transaction(function () use ($user, $product, $location, $quantity, $direction, $notes, $motif): StockMovement {
             $inventory = $this->lockInventory($product, $location);
 
             if ($direction === 'increase') {
@@ -138,7 +157,12 @@ class InventoryService
                     $user,
                     StockMovementType::Adjustment,
                     $quantity,
-                    $reason,
+                    $notes,
+                    null,
+                    null,
+                    null,
+                    $direction,
+                    $motif,
                 );
             }
 
@@ -147,7 +171,12 @@ class InventoryService
                 $user,
                 StockMovementType::Adjustment,
                 $quantity,
-                $reason,
+                $notes,
+                null,
+                null,
+                null,
+                $direction,
+                $motif,
             );
         });
     }
@@ -155,6 +184,10 @@ class InventoryService
     /**
      * Sortie de stock liée à une vente. Utilise exclusivement la boutique.
      * Le dépôt n’est jamais disponible à la vente.
+     *
+     * Le vendeur est l'utilisateur authentifié passé ici. Le patron et l'employé
+     * peuvent vendre ; l'identité du vendeur doit rester enregistrée sur la vente.
+     * Cette sortie ne remplace pas l'annulation d'une vente.
      */
     public function consumeForSale(
         User $user,
@@ -221,6 +254,8 @@ class InventoryService
         ?string $transferGroupId = null,
         ?string $referenceType = null,
         ?int $referenceId = null,
+        ?string $direction = null,
+        ?AdjustmentMotif $motif = null,
     ): StockMovement {
         $before = $inventory->quantity;
         $after = $before + $quantity;
@@ -239,6 +274,8 @@ class InventoryService
             $transferGroupId,
             $referenceType,
             $referenceId,
+            $direction,
+            $motif,
         );
     }
 
@@ -251,6 +288,8 @@ class InventoryService
         ?string $transferGroupId = null,
         ?string $referenceType = null,
         ?int $referenceId = null,
+        ?string $direction = null,
+        ?AdjustmentMotif $motif = null,
     ): StockMovement {
         $before = $inventory->quantity;
 
@@ -274,6 +313,8 @@ class InventoryService
             $transferGroupId,
             $referenceType,
             $referenceId,
+            $direction,
+            $motif,
         );
     }
 
@@ -288,12 +329,15 @@ class InventoryService
         ?string $transferGroupId,
         ?string $referenceType,
         ?int $referenceId,
+        ?string $direction = null,
+        ?AdjustmentMotif $motif = null,
     ): StockMovement {
         return StockMovement::query()->create([
             'organization_id' => $inventory->organization_id,
             'product_id' => $inventory->product_id,
             'location_id' => $inventory->location_id,
             'type' => $type,
+            'direction' => $direction,
             'quantity' => $quantity,
             'quantity_before' => $before,
             'quantity_after' => $after,
@@ -302,6 +346,7 @@ class InventoryService
             'reference_type' => $referenceType,
             'reference_id' => $referenceId,
             'notes' => $notes,
+            'adjustment_motif' => $motif,
         ]);
     }
 
