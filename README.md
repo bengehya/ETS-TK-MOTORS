@@ -54,6 +54,26 @@ php artisan serve
 
 Le premier compte créé devient automatiquement le **BOSS_PRINCIPAL** de l’organisation ETS TK MOTORS. L’inscription publique est ensuite fermée.
 
+L’application et la production restent sur **MySQL**. Les migrations métier ne sont pas adaptées à SQLite. PHPUnit utilise une base en mémoire, uniquement pour les tests.
+
+## Test via un tunnel HTTPS
+
+L’application répond en localhost et derrière un tunnel HTTPS, par exemple ngrok. Aucune URL de tunnel n’est écrite dans le code : elle change à chaque session.
+
+1. Laisser `APP_URL=http://localhost` pour Artisan. Les pages web utilisent l’hôte de la requête.
+2. Laisser `TRUSTED_PROXIES=*` en local. En production, indiquer l’adresse réelle du proxy, ou laisser la variable vide si l’application est jointe directement.
+3. Ne pas définir `SESSION_SECURE_COOKIE` : le cookie est Secure uniquement lorsque la requête est en HTTPS.
+4. Ne pas définir `ASSET_URL` ni `VITE_DEV_SERVER_URL` avec une URL de tunnel.
+5. Compiler les assets, puis retirer `public/hot` s’il a été créé par `npm run dev` :
+
+```bash
+npm run build
+rm -f public/hot
+php artisan serve
+```
+
+6. Ouvrir le tunnel vers le port affiché par `php artisan serve`, puis utiliser l’URL HTTPS que l’outil affiche. Le localhost continue de fonctionner en parallèle.
+
 ## Sécurité de session
 
 La session expire réellement après **5 minutes d’inactivité**. Une route ou une API protégée refuse alors l’accès : il faut se reconnecter.
@@ -72,8 +92,10 @@ Les permissions sont contrôlées côté serveur (Gates + middleware). Le fronte
 
 - Pointer le document root Apache vers le dossier `public/`
 - PHP 8.3+, MySQL, `mod_rewrite`
-- Copier `.env` sur le serveur, générer `APP_KEY`, lancer `php artisan migrate --seed`
+- Copier `.env` sur le serveur, générer `APP_KEY`, renseigner les variables `DB_*` de production
+- Lancer `php artisan migrate --seed`, puis vérifier les données, les relations, les transactions et les contraintes
 - Compiler le frontend en local (`npm run build`) puis déployer `public/build`
+- Laisser `TRUSTED_PROXIES` vide si le site est joint directement, ou y indiquer l’adresse du proxy. Ne pas y écrire une URL de tunnel.
 
 ## Tests
 

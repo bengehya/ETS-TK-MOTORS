@@ -1,8 +1,17 @@
 <?php
 
+use App\Http\Middleware\AlignSessionCookieSecurity;
+use App\Http\Middleware\EnsureBootstrapRegistrationIsOpen;
+use App\Http\Middleware\EnsureUserHasPermission;
+use App\Http\Middleware\EnsureUserHasRole;
+use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\RefreshZiggyRoutes;
+use App\Http\Middleware\TerminateIdleSession;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
+use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -11,16 +20,27 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->trustProxies(
+            headers: Request::HEADER_X_FORWARDED_FOR
+                | Request::HEADER_X_FORWARDED_HOST
+                | Request::HEADER_X_FORWARDED_PORT
+                | Request::HEADER_X_FORWARDED_PROTO
+                | Request::HEADER_X_FORWARDED_PREFIX,
+        );
+
         $middleware->alias([
-            'permission' => \App\Http\Middleware\EnsureUserHasPermission::class,
-            'role' => \App\Http\Middleware\EnsureUserHasRole::class,
-            'registration.open' => \App\Http\Middleware\EnsureBootstrapRegistrationIsOpen::class,
+            'permission' => EnsureUserHasPermission::class,
+            'role' => EnsureUserHasRole::class,
+            'registration.open' => EnsureBootstrapRegistrationIsOpen::class,
         ]);
 
-        $middleware->web(append: [
-            \App\Http\Middleware\TerminateIdleSession::class,
-            \App\Http\Middleware\HandleInertiaRequests::class,
-            \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
+        $middleware->web(prepend: [
+            AlignSessionCookieSecurity::class,
+            RefreshZiggyRoutes::class,
+        ], append: [
+            TerminateIdleSession::class,
+            HandleInertiaRequests::class,
+            AddLinkHeadersForPreloadedAssets::class,
         ]);
 
         $middleware->redirectGuestsTo(fn () => route('login'));

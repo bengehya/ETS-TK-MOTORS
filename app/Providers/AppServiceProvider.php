@@ -31,6 +31,10 @@ class AppServiceProvider extends ServiceProvider
     {
         Vite::prefetch(concurrency: 3);
 
+        Vite::createAssetPathsUsing(function (string $path): string {
+            return '/'.ltrim($path, '/');
+        });
+
         Route::bind('product', function (string $value): Product {
             $user = request()->user();
             abort_unless($user !== null, 401);
