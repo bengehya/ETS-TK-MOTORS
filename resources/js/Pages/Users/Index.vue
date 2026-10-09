@@ -50,13 +50,16 @@ const memberError = computed(() => {
 });
 
 const confirming = ref<null | { id: number; name: string; mode: 'suspend' | 'reactivate' }>(null);
+const dialogCopy = ref<null | { id: number; name: string; mode: 'suspend' | 'reactivate' }>(null);
 
 const revoke = (id: number) => {
     router.delete(route('users.invitations.destroy', id), { preserveScroll: true });
 };
 
 const ask = (member: MemberRow, mode: 'suspend' | 'reactivate') => {
-    confirming.value = { id: member.id, name: member.name, mode };
+    const next = { id: member.id, name: member.name, mode };
+    dialogCopy.value = next;
+    confirming.value = next;
 };
 
 const closeConfirm = () => {
@@ -207,19 +210,19 @@ const confirmChange = () => {
         <Modal :show="confirming !== null" max-width="md" @close="closeConfirm">
             <div class="p-6">
                 <h2 class="text-lg font-medium text-brand-navy">
-                    {{ confirming?.mode === 'reactivate' ? 'Réactiver ce compte ?' : 'Suspendre ce compte ?' }}
+                    {{ dialogCopy?.mode === 'reactivate' ? 'Réactiver ce compte ?' : 'Suspendre ce compte ?' }}
                 </h2>
                 <p class="mt-2 text-sm text-gray-600">
-                    <template v-if="confirming?.mode === 'suspend'">
-                        {{ confirming.name }} ne pourra plus se connecter.
+                    <template v-if="dialogCopy?.mode === 'reactivate'">
+                        {{ dialogCopy.name }} pourra à nouveau se connecter.
                     </template>
                     <template v-else>
-                        {{ confirming?.name }} pourra à nouveau se connecter.
+                        {{ dialogCopy?.name }} ne pourra plus se connecter.
                     </template>
                 </p>
                 <div class="mt-6 flex justify-end gap-3">
                     <SecondaryButton type="button" @click="closeConfirm">Annuler</SecondaryButton>
-                    <DangerButton v-if="confirming?.mode === 'suspend'" type="button" @click="confirmChange">
+                    <DangerButton v-if="dialogCopy?.mode !== 'reactivate'" type="button" @click="confirmChange">
                         Suspendre
                     </DangerButton>
                     <PrimaryButton v-else type="button" @click="confirmChange">Réactiver</PrimaryButton>
