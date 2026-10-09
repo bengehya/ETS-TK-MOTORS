@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\Civility;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -41,6 +42,32 @@ class ProfileTest extends TestCase
         $this->assertSame('Test User', $user->name);
         $this->assertSame('test@example.com', $user->email);
         $this->assertNull($user->email_verified_at);
+    }
+
+    public function test_profile_civility_is_saved_only_when_the_user_provides_it(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'Tresor Kalumbi',
+            'email' => 'monsieur.kalumbi@tkmotors.test',
+            'civility' => null,
+        ]);
+
+        $this->actingAs($user)
+            ->patch('/profile', [
+                'name' => 'Tresor Kalumbi',
+                'email' => $user->email,
+                'civility' => Civility::Monsieur->value,
+                'first_name' => 'Tresor',
+                'last_name' => 'Kalumbi',
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/profile');
+
+        $user->refresh();
+
+        $this->assertSame(Civility::Monsieur, $user->civility);
+        $this->assertSame('Tresor Kalumbi', $user->name);
+        $this->assertNotSame(Civility::Madame, $user->civility);
     }
 
     public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged(): void

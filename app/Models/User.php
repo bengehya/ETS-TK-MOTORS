@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use App\Authorization\RolePermissions;
+use App\Enums\Civility;
 use App\Enums\Permission;
 use App\Enums\Role;
+use App\Services\ProfilePhotoService;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -22,6 +24,9 @@ class User extends Authenticatable
     protected $fillable = [
         'organization_id',
         'name',
+        'first_name',
+        'last_name',
+        'civility',
         'email',
         'password',
         'role',
@@ -34,6 +39,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'profile_photo_path',
     ];
 
     /**
@@ -46,7 +52,37 @@ class User extends Authenticatable
             'last_login_at' => 'datetime',
             'password' => 'hashed',
             'role' => Role::class,
+            'civility' => Civility::class,
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (User $user): void {
+            app(ProfilePhotoService::class)->deleteStoredFile($user->profile_photo_path);
+        });
+    }
+
+    public function displayName(): string
+    {
+        $composed = trim(($this->first_name ?? '').' '.($this->last_name ?? ''));
+
+        return $composed !== '' ? $composed : $this->name;
+    }
+
+    public function profilePhotoUrl(): ?string
+    {
+        if (! is_string($this->profile_photo_path) || $this->profile_photo_path === '') {
+            return null;
+        }
+
+        return route('users.photo', $this);
+    }
+
+    public function canViewCompanyFinance(): bool
+    {
+        return $this->hasPermission(Permission::ViewReports)
+            && $this->hasPermission(Permission::ManageExpenses);
     }
 
     /**

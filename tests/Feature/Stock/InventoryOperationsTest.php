@@ -161,21 +161,40 @@ class InventoryOperationsTest extends TestCase
             'direction' => 'increase',
             'quantity' => 1,
             'reason' => 'court',
+        ])->assertSessionHasErrors('motif');
+
+        $this->actingAs($boss)->post('/articles/'.$product->id.'/stock/ajustement', [
+            'location_id' => $boutique->id,
+            'direction' => 'increase',
+            'quantity' => 1,
+            'motif' => 'autre',
+            'reason' => 'court',
         ])->assertSessionHasErrors('reason');
 
         $this->actingAs($boss)->post('/articles/'.$product->id.'/stock/ajustement', [
             'location_id' => $boutique->id,
             'direction' => 'increase',
             'quantity' => 1,
+            'motif' => 'erreur_comptage',
             'reason' => 'Inventaire physique boutique',
         ])->assertRedirect();
 
         $this->assertSame(1, $this->quantity($product, $boutique));
         $this->assertDatabaseHas('stock_movements', [
             'product_id' => $product->id,
+            'location_id' => $boutique->id,
             'type' => StockMovementType::Adjustment->value,
+            'direction' => 'increase',
+            'quantity' => 1,
+            'quantity_before' => 0,
+            'quantity_after' => 1,
             'user_id' => $boss->id,
-            'notes' => 'Inventaire physique boutique',
+            'adjustment_motif' => 'erreur_comptage',
+            'notes' => 'Erreur de comptage — Inventaire physique boutique',
+        ]);
+        $this->assertDatabaseMissing('stock_movements', [
+            'product_id' => $product->id,
+            'type' => StockMovementType::Sale->value,
         ]);
     }
 
@@ -189,6 +208,7 @@ class InventoryOperationsTest extends TestCase
             'location_id' => $boutique->id,
             'direction' => 'decrease',
             'quantity' => 1,
+            'motif' => 'casse',
             'reason' => 'Correction inventaire boutique',
         ])->assertSessionHasErrors('quantity');
 

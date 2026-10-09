@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AdjustmentMotif;
 use App\Enums\StockMovementType;
 use Database\Factories\StockMovementFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -21,6 +22,7 @@ class StockMovement extends Model
         'product_id',
         'location_id',
         'type',
+        'direction',
         'quantity',
         'quantity_before',
         'quantity_after',
@@ -29,6 +31,7 @@ class StockMovement extends Model
         'reference_type',
         'reference_id',
         'notes',
+        'adjustment_motif',
     ];
 
     /**
@@ -38,6 +41,7 @@ class StockMovement extends Model
     {
         return [
             'type' => StockMovementType::class,
+            'adjustment_motif' => AdjustmentMotif::class,
             'quantity' => 'integer',
             'quantity_before' => 'integer',
             'quantity_after' => 'integer',

@@ -4,7 +4,7 @@ import EmptyState from '@/Components/Dashboard/EmptyState.vue';
 const props = defineProps<{
     label: string;
     empty: boolean;
-    points: { key: string; label: string; quantity: number; count: number }[];
+    points: { key: string; label: string; quantity: number; count: number; amount?: string }[];
 }>();
 
 const maxQuantity = () => Math.max(...props.points.map((point) => point.quantity), 1);
@@ -23,7 +23,7 @@ const maxQuantity = () => Math.max(...props.points.map((point) => point.quantity
                 <div
                     class="w-full rounded-t bg-brand-navy"
                     :style="{ height: `${Math.max(4, (point.quantity / maxQuantity()) * 100)}%` }"
-                    :title="`${point.label} : ${point.quantity}`"
+                    :title="`${point.label} : ${point.quantity}${point.amount ? ` · ${point.amount}` : ''}`"
                 />
                 <span class="mt-1 truncate text-[10px] text-gray-500">{{ point.label }}</span>
             </div>

@@ -169,6 +169,7 @@ return [
     |
     */
 
+    // Null : le middleware aligne le drapeau Secure sur le schéma réel de la requête.
     'secure' => env('SESSION_SECURE_COOKIE'),
 
     /*

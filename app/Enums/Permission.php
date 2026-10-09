@@ -19,6 +19,7 @@ enum Permission: string
     case ScanProducts = 'scan_products';
     case RecordStockReceipts = 'record_stock_receipts';
     case CreateCustomerRequests = 'create_customer_requests';
+    case ManageRentals = 'manage_rentals';
 
     public function label(): string
     {
@@ -38,6 +39,7 @@ enum Permission: string
             self::ScanProducts => 'Scanner des articles',
             self::RecordStockReceipts => 'Enregistrer un arrivage',
             self::CreateCustomerRequests => 'Enregistrer une demande client',
+            self::ManageRentals => 'Gérer les locations',
         };
     }
 }

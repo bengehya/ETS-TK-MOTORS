@@ -12,6 +12,7 @@ const props = defineProps<{
         name: string;
         category: string;
         description: string | null;
+        purchase_price?: string | null;
         sale_price: string;
     };
     categories: string[];
@@ -24,6 +25,7 @@ const form = useForm({
     name: props.product.name,
     category: props.product.category,
     description: props.product.description ?? '',
+    purchase_price: props.product.purchase_price ?? '',
     sale_price: props.product.sale_price,
     _method: 'put',
 });

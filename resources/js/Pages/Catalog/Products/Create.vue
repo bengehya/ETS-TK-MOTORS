@@ -15,6 +15,7 @@ const form = useForm({
     name: '',
     category: '',
     description: '',
+    purchase_price: '',
     sale_price: '',
 });
 
@@ -38,7 +39,7 @@ const submit = () => {
         <div class="py-8">
             <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
                 <form class="rounded-xl border border-brand-gold/40 bg-white p-6 shadow-sm" @submit.prevent="submit">
-                    <ProductFormFields :form="form" :categories="categories" :can-update-price="canUpdatePrice" />
+                    <ProductFormFields :form="form" :categories="categories" :can-update-price="canUpdatePrice" require-purchase-price />
 
                     <div class="mt-6 flex items-center justify-end gap-3">
                         <Link :href="route('products.index')" class="text-sm text-brand-navy underline">Annuler</Link>

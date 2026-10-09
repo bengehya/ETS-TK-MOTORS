@@ -85,7 +85,7 @@ const search = () => {
                                     <th class="px-4 py-3">Code</th>
                                     <th class="px-4 py-3">Article</th>
                                     <th class="px-4 py-3">Catégorie</th>
-                                    <th class="px-4 py-3">Prix</th>
+                                    <th class="px-4 py-3">Prix de vente</th>
                                     <th class="px-4 py-3">Quantité</th>
                                 </tr>
                             </thead>

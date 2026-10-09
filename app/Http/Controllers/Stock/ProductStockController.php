@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Stock;
 
+use App\Enums\AdjustmentMotif;
 use App\Exceptions\InactiveProductException;
 use App\Exceptions\InsufficientStockException;
 use App\Http\Controllers\Controller;
@@ -57,7 +58,8 @@ class ProductStockController extends Controller
                 $request->location(),
                 $request->integer('quantity'),
                 $request->string('direction')->toString(),
-                $request->string('reason')->toString(),
+                trim((string) $request->input('reason', '')),
+                AdjustmentMotif::from($request->string('motif')->toString()),
             );
         } catch (InsufficientStockException $exception) {
             throw ValidationException::withMessages(['quantity' => $exception->getMessage()]);

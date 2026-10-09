@@ -8,6 +8,7 @@ enum StockMovementType: string
     case TransferOut = 'transfer_out';
     case TransferIn = 'transfer_in';
     case Sale = 'sale';
+    case SaleReturn = 'sale_return';
     case Adjustment = 'adjustment';
 
     public function label(): string
@@ -17,6 +18,7 @@ enum StockMovementType: string
             self::TransferOut => 'Transfert sortant',
             self::TransferIn => 'Transfert entrant',
             self::Sale => 'Sortie vente',
+            self::SaleReturn => 'Restauration de vente',
             self::Adjustment => 'Ajustement',
         };
     }

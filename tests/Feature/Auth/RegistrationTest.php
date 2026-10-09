@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Enums\Civility;
 use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\User;
@@ -22,6 +23,7 @@ class RegistrationTest extends TestCase
     public function test_the_first_user_becomes_boss_principal_of_ets_tk_motors(): void
     {
         $response = $this->post('/register', [
+            'civility' => Civility::Monsieur->value,
             'name' => 'Patron Principal',
             'email' => 'patron@tkmotors.test',
             'password' => 'password',
@@ -35,6 +37,7 @@ class RegistrationTest extends TestCase
 
         $this->assertNotNull($user);
         $this->assertSame(Role::BossPrincipal, $user->role);
+        $this->assertSame(Civility::Monsieur, $user->civility);
         $this->assertSame(config('tkmotors.company'), $user->organization->name);
         $this->assertSame(config('tkmotors.organization_slug'), $user->organization->slug);
         $this->assertSame(1, Organization::query()->count());
@@ -55,5 +58,17 @@ class RegistrationTest extends TestCase
 
         $this->assertGuest();
         $this->assertSame(1, User::query()->count());
+    }
+
+    public function test_registration_does_not_infer_civility_from_the_email(): void
+    {
+        $this->post('/register', [
+            'name' => 'Amina Kabila',
+            'email' => 'madame.kabila@tkmotors.test',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ])->assertSessionHasErrors('civility');
+
+        $this->assertDatabaseCount('users', 0);
     }
 }

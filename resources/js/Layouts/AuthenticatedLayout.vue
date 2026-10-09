@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, provide, ref, watch } from 'vue';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
+import UserAvatar from '@/Components/UserAvatar.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import NavGroup from '@/Components/NavGroup.vue';
@@ -9,17 +10,47 @@ import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
 import { Link, usePage } from '@inertiajs/vue3';
 
 const showingNavigationDropdown = ref(false);
+const openMenu = ref<string | null>(null);
 const page = usePage();
+
+provide('navMenus', {
+    open: openMenu,
+    toggle: (id: string) => {
+        openMenu.value = openMenu.value === id ? null : id;
+    },
+    close: () => {
+        openMenu.value = null;
+    },
+});
+
+watch(showingNavigationDropdown, (open) => {
+    if (open) {
+        openMenu.value = null;
+    }
+});
+
+watch(() => page.url, () => {
+    openMenu.value = null;
+    showingNavigationDropdown.value = false;
+});
 const user = page.props.auth.user;
 const organization = page.props.organization;
 const brand = page.props.brand;
 const canSearch = computed(() => Boolean(user?.permissions.includes('search_products')));
 const canRecordArrivals = computed(() => Boolean(user?.permissions.includes('record_stock_receipts')));
+const canManageUsers = computed(() => Boolean(user?.permissions.includes('manage_employees')));
+const canSell = computed(() => Boolean(user?.permissions.includes('create_sales')));
+const canManageExpenses = computed(() => Boolean(user?.permissions.includes('manage_expenses')));
+const canRequest = computed(() => Boolean(user?.permissions.includes('create_customer_requests')));
+const rentalsEnabled = computed(() => Boolean(page.props.features?.rentals));
+const canManageRentals = computed(() => rentalsEnabled.value && Boolean(user?.permissions.includes('manage_rentals')));
+const canViewReports = computed(() => Boolean(user?.permissions.includes('view_reports')));
+const canViewAudit = computed(() => Boolean(user?.permissions.includes('view_audit')));
 </script>
 
 <template>
     <div class="min-h-screen bg-brand-cream">
-        <nav class="border-b-4 border-brand-gold bg-brand-navy">
+        <nav class="border-b-4 border-brand-gold bg-brand-navy print:hidden">
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div class="flex h-20 justify-between">
                     <div class="flex min-w-0">
@@ -39,7 +70,7 @@ const canRecordArrivals = computed(() => Boolean(user?.permissions.includes('rec
                             </Link>
                         </div>
 
-                        <div class="hidden space-x-5 lg:-my-px lg:ms-8 lg:flex">
+                        <div class="hidden lg:-my-px lg:ms-8 lg:flex lg:flex-wrap lg:items-center lg:gap-x-4">
                             <NavLink
                                 :href="route('dashboard')"
                                 :active="route().current('dashboard')"
@@ -47,25 +78,74 @@ const canRecordArrivals = computed(() => Boolean(user?.permissions.includes('rec
                                 Tableau de bord
                             </NavLink>
                             <NavLink
-                                v-if="canSearch"
-                                :href="route('products.index')"
-                                :active="route().current('products.*')"
+                                v-if="canSell"
+                                :href="route('sales.index')"
+                                :active="route().current('sales.*')"
                             >
-                                Catalogue
+                                Ventes
                             </NavLink>
                             <NavGroup
                                 v-if="canSearch"
                                 label="Stock"
-                                :active="route().current('stocks.*')"
+                                menu-id="stock"
+                                :active="route().current('stocks.*') || route().current('products.*')"
                             >
                                 <DropdownLink :href="route('stocks.overview')">Vue générale</DropdownLink>
+                                <DropdownLink :href="route('products.index')">Articles</DropdownLink>
                                 <DropdownLink :href="route('stocks.boutique')">Boutique</DropdownLink>
                                 <DropdownLink :href="route('stocks.depot')">Dépôt</DropdownLink>
                                 <DropdownLink :href="route('stocks.movements')">Mouvements</DropdownLink>
                             </NavGroup>
                             <NavGroup
+                                v-if="canManageExpenses || canSell"
+                                label="Finances"
+                                menu-id="finances"
+                                :active="route().current('cash.*') || route().current('expenses.*') || route().current('savings.show')"
+                            >
+                                <DropdownLink v-if="canManageExpenses" :href="route('cash.index')">Caisse</DropdownLink>
+                                <DropdownLink v-if="canManageExpenses" :href="route('expenses.index')">Dépenses</DropdownLink>
+                                <DropdownLink v-if="canManageExpenses" :href="route('cash.exchange')">Change</DropdownLink>
+                                <DropdownLink v-if="canViewReports" :href="route('savings.show')">Épargne</DropdownLink>
+                                <DropdownLink v-if="canSell" :href="route('cash.counts.index')">Comptage</DropdownLink>
+                            </NavGroup>
+                            <NavLink
+                                v-if="canRequest"
+                                :href="route('requests.index')"
+                                :active="route().current('requests.*')"
+                            >
+                                Demandes
+                            </NavLink>
+                            <NavLink
+                                v-if="canManageRentals"
+                                :href="route('rentals.index')"
+                                :active="route().current('rentals.*')"
+                            >
+                                Locations
+                            </NavLink>
+                            <NavLink
+                                :href="route('alerts.index')"
+                                :active="route().current('alerts.index')"
+                            >
+                                Alertes
+                            </NavLink>
+                            <NavLink
+                                v-if="canViewAudit"
+                                :href="route('audit.index')"
+                                :active="route().current('audit.index')"
+                            >
+                                Audit
+                            </NavLink>
+                            <NavLink
+                                v-if="canManageUsers"
+                                :href="route('users.invitations.index')"
+                                :active="route().current('users.invitations.*')"
+                            >
+                                Utilisateurs
+                            </NavLink>
+                            <NavGroup
                                 v-if="canRecordArrivals"
                                 label="Approvisionnements"
+                                menu-id="supply"
                                 :active="route().current('arrivals.*')"
                             >
                                 <DropdownLink :href="route('arrivals.create')">Nouvel arrivage</DropdownLink>
@@ -78,13 +158,14 @@ const canRecordArrivals = computed(() => Boolean(user?.permissions.includes('rec
 
                     <div class="hidden lg:ms-6 lg:flex lg:items-center">
                         <div class="relative ms-3">
-                            <Dropdown align="right" width="48">
+                            <Dropdown align="right" width="48" menu-id="profile">
                                 <template #trigger>
                                     <span class="inline-flex rounded-md">
                                         <button
                                             type="button"
-                                            class="inline-flex items-center rounded-md border border-brand-gold/40 bg-brand-navy-deep px-3 py-2 text-sm font-medium leading-4 text-brand-cream transition duration-150 ease-in-out hover:border-brand-gold hover:text-white focus:outline-none"
+                                            class="inline-flex items-center gap-2 rounded-md border border-brand-gold/40 bg-brand-navy-deep px-3 py-2 text-sm font-medium leading-4 text-brand-cream transition duration-150 ease-in-out hover:border-brand-gold hover:text-white focus:outline-none"
                                         >
+                                            <UserAvatar v-if="user" :name="user.name" :photo-url="user.photo_url" size="sm" decorative />
                                             {{ user?.name }}
                                             <svg
                                                 class="-me-0.5 ms-2 h-4 w-4"
@@ -103,6 +184,9 @@ const canRecordArrivals = computed(() => Boolean(user?.permissions.includes('rec
                                 </template>
 
                                 <template #content>
+                                    <DropdownLink v-if="canManageUsers" :href="route('users.invitations.index')">
+                                        Utilisateurs
+                                    </DropdownLink>
                                     <DropdownLink :href="route('profile.edit')">
                                         Profil
                                     </DropdownLink>
@@ -157,83 +241,113 @@ const canRecordArrivals = computed(() => Boolean(user?.permissions.includes('rec
                 }"
                 class="bg-brand-navy-deep lg:hidden"
             >
-                    <div class="space-y-1 pb-3 pt-2">
+                    <div class="space-y-1 pb-3 pt-2" @click.self="openMenu = null">
                         <ResponsiveNavLink
                             :href="route('dashboard')"
                             :active="route().current('dashboard')"
                         >
                             Tableau de bord
                         </ResponsiveNavLink>
-                        <p v-if="canSearch" class="px-4 pt-3 text-xs font-semibold uppercase tracking-widest text-brand-gold">
-                            Catalogue
-                        </p>
                         <ResponsiveNavLink
-                            v-if="canSearch"
-                            :href="route('products.index')"
-                            :active="route().current('products.*')"
+                            v-if="canSell"
+                            :href="route('sales.index')"
+                            :active="route().current('sales.*')"
                         >
-                            Articles
+                            Ventes
                         </ResponsiveNavLink>
-                        <p v-if="canSearch" class="px-4 pt-3 text-xs font-semibold uppercase tracking-widest text-brand-gold">
-                            Stock
-                        </p>
+                        <div v-if="canSearch">
+                            <button
+                                type="button"
+                                class="flex w-full items-center justify-between px-4 py-2 text-start text-base font-medium text-brand-cream touch-manipulation"
+                                :aria-expanded="openMenu === 'stock'"
+                                @click="openMenu = openMenu === 'stock' ? null : 'stock'"
+                            >
+                                Stock
+                                <span aria-hidden="true">{{ openMenu === 'stock' ? '−' : '+' }}</span>
+                            </button>
+                            <div v-show="openMenu === 'stock'" class="bg-white">
+                                <ResponsiveNavLink :href="route('stocks.overview')" :active="route().current('stocks.overview')">Vue générale</ResponsiveNavLink>
+                                <ResponsiveNavLink :href="route('products.index')" :active="route().current('products.*')">Articles</ResponsiveNavLink>
+                                <ResponsiveNavLink :href="route('stocks.boutique')" :active="route().current('stocks.boutique')">Boutique</ResponsiveNavLink>
+                                <ResponsiveNavLink :href="route('stocks.depot')" :active="route().current('stocks.depot')">Dépôt</ResponsiveNavLink>
+                                <ResponsiveNavLink :href="route('stocks.movements')" :active="route().current('stocks.movements')">Mouvements</ResponsiveNavLink>
+                            </div>
+                        </div>
+                        <div v-if="canManageExpenses || canSell">
+                            <button
+                                type="button"
+                                class="flex w-full items-center justify-between px-4 py-2 text-start text-base font-medium text-brand-cream touch-manipulation"
+                                :aria-expanded="openMenu === 'finances'"
+                                @click="openMenu = openMenu === 'finances' ? null : 'finances'"
+                            >
+                                Finances
+                                <span aria-hidden="true">{{ openMenu === 'finances' ? '−' : '+' }}</span>
+                            </button>
+                            <div v-show="openMenu === 'finances'" class="bg-white">
+                                <ResponsiveNavLink v-if="canManageExpenses" :href="route('cash.index')" :active="route().current('cash.index')">Caisse</ResponsiveNavLink>
+                                <ResponsiveNavLink v-if="canManageExpenses" :href="route('expenses.index')" :active="route().current('expenses.*')">Dépenses</ResponsiveNavLink>
+                                <ResponsiveNavLink v-if="canManageExpenses" :href="route('cash.exchange')" :active="route().current('cash.exchange')">Change</ResponsiveNavLink>
+                                <ResponsiveNavLink v-if="canViewReports" :href="route('savings.show')" :active="route().current('savings.show')">Épargne</ResponsiveNavLink>
+                                <ResponsiveNavLink v-if="canSell" :href="route('cash.counts.index')" :active="route().current('cash.counts.*')">Comptage</ResponsiveNavLink>
+                            </div>
+                        </div>
                         <ResponsiveNavLink
-                            v-if="canSearch"
-                            :href="route('stocks.overview')"
-                            :active="route().current('stocks.overview')"
+                            v-if="canRequest"
+                            :href="route('requests.index')"
+                            :active="route().current('requests.*')"
                         >
-                            Vue générale
-                        </ResponsiveNavLink>
-                        <ResponsiveNavLink
-                            v-if="canSearch"
-                            :href="route('stocks.boutique')"
-                            :active="route().current('stocks.boutique')"
-                        >
-                            Boutique
-                        </ResponsiveNavLink>
-                        <ResponsiveNavLink
-                            v-if="canSearch"
-                            :href="route('stocks.depot')"
-                            :active="route().current('stocks.depot')"
-                        >
-                            Dépôt
-                        </ResponsiveNavLink>
-                        <ResponsiveNavLink
-                            v-if="canSearch"
-                            :href="route('stocks.movements')"
-                            :active="route().current('stocks.movements')"
-                        >
-                            Mouvements
-                        </ResponsiveNavLink>
-                        <p v-if="canRecordArrivals" class="px-4 pt-3 text-xs font-semibold uppercase tracking-widest text-brand-gold">
-                            Approvisionnements
-                        </p>
-                        <ResponsiveNavLink
-                            v-if="canRecordArrivals"
-                            :href="route('arrivals.create')"
-                            :active="route().current('arrivals.create')"
-                        >
-                            Nouvel arrivage
-                        </ResponsiveNavLink>
-                        <ResponsiveNavLink
-                            v-if="canRecordArrivals"
-                            :href="route('arrivals.pending')"
-                            :active="route().current('arrivals.pending')"
-                        >
-                            En attente
+                            Demandes
                         </ResponsiveNavLink>
                         <ResponsiveNavLink
-                            v-if="canRecordArrivals"
-                            :href="route('arrivals.history')"
-                            :active="route().current('arrivals.history')"
+                            v-if="canManageRentals"
+                            :href="route('rentals.index')"
+                            :active="route().current('rentals.*')"
                         >
-                            Historique
+                            Locations
                         </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('alerts.index')"
+                            :active="route().current('alerts.index')"
+                        >
+                            Alertes
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            v-if="canViewAudit"
+                            :href="route('audit.index')"
+                            :active="route().current('audit.index')"
+                        >
+                            Audit
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            v-if="canManageUsers"
+                            :href="route('users.invitations.index')"
+                            :active="route().current('users.invitations.*')"
+                        >
+                            Utilisateurs
+                        </ResponsiveNavLink>
+                        <div v-if="canRecordArrivals">
+                            <button
+                                type="button"
+                                class="flex w-full items-center justify-between px-4 py-2 text-start text-base font-medium text-brand-cream touch-manipulation"
+                                :aria-expanded="openMenu === 'supply'"
+                                @click="openMenu = openMenu === 'supply' ? null : 'supply'"
+                            >
+                                Approvisionnements
+                                <span aria-hidden="true">{{ openMenu === 'supply' ? '−' : '+' }}</span>
+                            </button>
+                            <div v-show="openMenu === 'supply'" class="bg-white">
+                                <ResponsiveNavLink :href="route('arrivals.create')" :active="route().current('arrivals.create')">Nouvel arrivage</ResponsiveNavLink>
+                                <ResponsiveNavLink :href="route('arrivals.pending')" :active="route().current('arrivals.pending')">En attente</ResponsiveNavLink>
+                                <ResponsiveNavLink :href="route('arrivals.history')" :active="route().current('arrivals.history')">Historique</ResponsiveNavLink>
+                                <ResponsiveNavLink :href="route('arrivals.index')" :active="route().current('arrivals.index')">Tous les arrivages</ResponsiveNavLink>
+                            </div>
+                        </div>
                     </div>
 
                 <div class="border-t border-brand-gold/30 pb-1 pt-4">
                     <div class="px-4">
-                        <div class="text-base font-medium text-white">
+                        <div class="flex items-center gap-3 text-base font-medium text-white">
+                            <UserAvatar v-if="user" :name="user.name" :photo-url="user.photo_url" size="sm" decorative />
                             {{ user?.name }}
                         </div>
                         <div class="text-sm font-medium text-brand-gold">
@@ -244,17 +358,28 @@ const canRecordArrivals = computed(() => Boolean(user?.permissions.includes('rec
                         </div>
                     </div>
 
-                    <div class="mt-3 space-y-1 bg-white">
-                        <ResponsiveNavLink :href="route('profile.edit')">
-                            Profil
-                        </ResponsiveNavLink>
-                        <ResponsiveNavLink
-                            :href="route('logout')"
-                            method="post"
-                            as="button"
+                    <div class="mt-3">
+                        <button
+                            type="button"
+                            class="flex w-full items-center justify-between bg-white px-4 py-2 text-start text-base font-medium text-brand-navy touch-manipulation"
+                            :aria-expanded="openMenu === 'profile'"
+                            @click="openMenu = openMenu === 'profile' ? null : 'profile'"
                         >
-                            Déconnexion
-                        </ResponsiveNavLink>
+                            Profil
+                            <span aria-hidden="true">{{ openMenu === 'profile' ? '−' : '+' }}</span>
+                        </button>
+                        <div v-show="openMenu === 'profile'" class="space-y-1 bg-white">
+                            <ResponsiveNavLink :href="route('profile.edit')">
+                                Mon profil
+                            </ResponsiveNavLink>
+                            <ResponsiveNavLink
+                                :href="route('logout')"
+                                method="post"
+                                as="button"
+                            >
+                                Déconnexion
+                            </ResponsiveNavLink>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -270,7 +395,7 @@ const canRecordArrivals = computed(() => Boolean(user?.permissions.includes('rec
             <slot />
         </main>
 
-        <footer class="border-t border-brand-gold/40 bg-brand-navy py-4 text-center text-xs text-brand-cream/80">
+        <footer class="border-t border-brand-gold/40 bg-brand-navy py-4 text-center text-xs text-brand-cream/80 print:hidden">
             <p>{{ brand.company }} · {{ brand.city }} · Qualité · Service · Confiance</p>
         </footer>
     </div>

@@ -21,6 +21,7 @@ class ProductManagementTest extends TestCase
             'name' => 'Filtre à huile',
             'category' => 'Pièces moteur',
             'description' => 'Filtre universel',
+            'purchase_price' => '3.00',
             'sale_price' => '15.50',
         ])->assertRedirect();
 
@@ -43,12 +44,14 @@ class ProductManagementTest extends TestCase
             'code' => 'SEC-010',
             'name' => 'Ampoule phare',
             'category' => 'Éclairage',
+            'purchase_price' => '3.00',
             'sale_price' => '8.00',
         ])->assertRedirect();
 
         $this->assertDatabaseHas('products', [
             'organization_id' => $boss->organization_id,
             'code' => 'SEC-010',
+            'purchase_price' => '3.00',
             'sale_price' => '8.00',
         ]);
     }
@@ -67,6 +70,7 @@ class ProductManagementTest extends TestCase
             'code' => 'FLT-001',
             'name' => 'Filtre local',
             'category' => 'Pièces moteur',
+            'purchase_price' => '3.00',
             'sale_price' => '12.00',
         ])->assertRedirect();
 
@@ -81,6 +85,7 @@ class ProductManagementTest extends TestCase
             'code' => 'NO-BAR-1',
             'name' => 'Article sans code-barres',
             'category' => 'Accessoires',
+            'purchase_price' => '3.00',
             'sale_price' => '5.00',
         ])->assertRedirect();
 
@@ -88,6 +93,7 @@ class ProductManagementTest extends TestCase
             'code' => 'NO-BAR-2',
             'name' => 'Autre article sans code-barres',
             'category' => 'Accessoires',
+            'purchase_price' => '3.00',
             'sale_price' => '6.00',
         ])->assertRedirect();
 
@@ -107,6 +113,7 @@ class ProductManagementTest extends TestCase
             'barcode' => '1234567890123',
             'name' => 'Doublon code-barres',
             'category' => 'Accessoires',
+            'purchase_price' => '3.00',
             'sale_price' => '7.00',
         ])->assertSessionHasErrors('barcode');
     }
@@ -123,6 +130,7 @@ class ProductManagementTest extends TestCase
             'code' => 'FLT-001',
             'name' => 'Autre filtre',
             'category' => 'Pièces moteur',
+            'purchase_price' => '3.00',
             'sale_price' => '10.00',
         ])->assertSessionHasErrors('code');
     }
@@ -132,6 +140,7 @@ class ProductManagementTest extends TestCase
         $boss = User::factory()->bossPrincipal()->create();
         $product = Product::factory()->create([
             'organization_id' => $boss->organization_id,
+            'purchase_price' => '3.00',
             'sale_price' => '10.00',
         ]);
 
@@ -140,10 +149,31 @@ class ProductManagementTest extends TestCase
             'name' => $product->name,
             'category' => $product->category,
             'description' => $product->description,
+            'purchase_price' => '3.00',
             'sale_price' => '25.00',
         ])->assertRedirect();
 
         $this->assertSame('25.00', $product->fresh()->sale_price);
+        $this->assertSame('3.00', $product->fresh()->purchase_price);
+    }
+
+    public function test_a_boss_can_consult_the_purchase_price(): void
+    {
+        $boss = User::factory()->bossPrincipal()->create();
+        $product = Product::factory()->create([
+            'organization_id' => $boss->organization_id,
+            'purchase_price' => '4.50',
+            'sale_price' => '12.00',
+        ]);
+
+        $this->actingAs($boss)
+            ->get('/articles/'.$product->id)
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('canViewPurchasePrice', true)
+                ->where('product.purchase_price', '4.50')
+                ->where('product.sale_price', '12.00')
+            );
     }
 
     public function test_an_employee_cannot_create_or_update_an_article_or_its_price(): void
@@ -151,6 +181,7 @@ class ProductManagementTest extends TestCase
         $employee = User::factory()->employe()->create();
         $product = Product::factory()->create([
             'organization_id' => $employee->organization_id,
+            'purchase_price' => '3.00',
             'sale_price' => '10.00',
         ]);
 
@@ -161,6 +192,7 @@ class ProductManagementTest extends TestCase
             'code' => 'EMP-001',
             'name' => 'Intrusion',
             'category' => 'Pièces moteur',
+            'purchase_price' => '3.00',
             'sale_price' => '9.00',
         ])->assertForbidden();
 
@@ -168,6 +200,7 @@ class ProductManagementTest extends TestCase
             'code' => $product->code,
             'name' => $product->name,
             'category' => $product->category,
+            'purchase_price' => '3.00',
             'sale_price' => '1.00',
         ])->assertForbidden();
 
@@ -181,6 +214,7 @@ class ProductManagementTest extends TestCase
             'organization_id' => $employee->organization_id,
             'code' => 'SRC-100',
             'name' => 'Plaquette de frein',
+            'purchase_price' => '3.00',
             'sale_price' => '42.00',
         ]);
 
@@ -192,6 +226,8 @@ class ProductManagementTest extends TestCase
                 ->has('products.data', 1)
                 ->where('products.data.0.name', 'Plaquette de frein')
                 ->where('products.data.0.sale_price', '42.00')
+                ->missing('products.data.0.purchase_price')
+                ->where('canViewPurchasePrice', false)
             );
 
         $this->actingAs($employee)
@@ -200,6 +236,8 @@ class ProductManagementTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Catalog/Products/Show')
                 ->where('product.sale_price', '42.00')
+                ->missing('product.purchase_price')
+                ->where('canViewPurchasePrice', false)
                 ->where('canManage', false)
             );
     }

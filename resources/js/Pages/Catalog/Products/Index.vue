@@ -13,6 +13,7 @@ type ProductRow = {
     name: string;
     category: string;
     sale_price: string;
+    purchase_price?: string | null;
     is_active: boolean;
     stocks: {
         sellable_quantity: number;
@@ -29,6 +30,7 @@ const props = defineProps<{
     filters: { q: string; category: string; status: string };
     categories: string[];
     canManage: boolean;
+    canViewPurchasePrice: boolean;
 }>();
 
 const q = ref(props.filters.q);
@@ -85,7 +87,8 @@ const search = () => {
                                     <th class="px-4 py-3">Code</th>
                                     <th class="px-4 py-3">Article</th>
                                     <th class="px-4 py-3">Catégorie</th>
-                                    <th class="px-4 py-3">Prix</th>
+                                    <th v-if="canViewPurchasePrice" class="px-4 py-3">Prix d'achat</th>
+                                    <th class="px-4 py-3">Prix de vente</th>
                                     <th class="px-4 py-3">Boutique</th>
                                     <th class="px-4 py-3">Dépôt</th>
                                     <th class="px-4 py-3">État</th>
@@ -93,7 +96,7 @@ const search = () => {
                             </thead>
                             <tbody class="divide-y divide-gray-100">
                                 <tr v-if="products.data.length === 0">
-                                    <td colspan="7" class="px-4 py-8 text-center text-gray-500">Aucun article trouvé.</td>
+                                    <td :colspan="canViewPurchasePrice ? 8 : 7" class="px-4 py-8 text-center text-gray-500">Aucun article trouvé.</td>
                                 </tr>
                                 <tr v-for="product in products.data" :key="product.id" class="hover:bg-brand-cream/40">
                                     <td class="px-4 py-3 font-mono text-xs">
@@ -103,6 +106,7 @@ const search = () => {
                                     </td>
                                     <td class="px-4 py-3 font-medium text-brand-navy">{{ product.name }}</td>
                                     <td class="px-4 py-3">{{ product.category }}</td>
+                                    <td v-if="canViewPurchasePrice" class="px-4 py-3">{{ product.purchase_price ?? 'Non renseigné' }}</td>
                                     <td class="px-4 py-3">{{ product.sale_price }}</td>
                                     <td class="px-4 py-3">{{ product.stocks.sellable_quantity }}</td>
                                     <td class="px-4 py-3">{{ product.stocks.depot_quantity }}</td>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import DangerButton from '@/Components/DangerButton.vue';
 import FlashStatus from '@/Components/FlashStatus.vue';
+import UserIdentity from '@/Components/UserIdentity.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import Modal from '@/Components/Modal.vue';
@@ -24,9 +25,9 @@ const props = defineProps<{
         rejection_reason: string | null;
         product: { id: number; code: string; name: string } | null;
         location: { id: number; name: string; type: string } | null;
-        recorder: { id: number; name: string } | null;
-        validator: { id: number; name: string } | null;
-        rejector: { id: number; name: string } | null;
+        recorder: { id: number; name: string; photo_url?: string | null } | null;
+        validator: { id: number; name: string; photo_url?: string | null } | null;
+        rejector: { id: number; name: string; photo_url?: string | null } | null;
     };
     canApprove: boolean;
 }>();
@@ -106,7 +107,7 @@ const submitReject = () => {
                         </div>
                         <div>
                             <dt class="text-gray-500">Enregistré par</dt>
-                            <dd class="font-medium text-brand-navy">{{ arrival.recorder?.name }}</dd>
+                            <dd class="font-medium text-brand-navy"><UserIdentity :user="arrival.recorder" /></dd>
                         </div>
                         <div>
                             <dt class="text-gray-500">Date d’enregistrement</dt>
@@ -114,7 +115,7 @@ const submitReject = () => {
                         </div>
                         <div v-if="arrival.validator">
                             <dt class="text-gray-500">Validé par</dt>
-                            <dd class="font-medium text-brand-navy">{{ arrival.validator.name }}</dd>
+                            <dd class="font-medium text-brand-navy"><UserIdentity :user="arrival.validator" /></dd>
                         </div>
                         <div v-if="arrival.validated_at">
                             <dt class="text-gray-500">Date de validation</dt>
@@ -122,7 +123,7 @@ const submitReject = () => {
                         </div>
                         <div v-if="arrival.rejector">
                             <dt class="text-gray-500">Rejeté par</dt>
-                            <dd class="font-medium text-brand-navy">{{ arrival.rejector.name }}</dd>
+                            <dd class="font-medium text-brand-navy"><UserIdentity :user="arrival.rejector" /></dd>
                         </div>
                         <div v-if="arrival.rejected_at">
                             <dt class="text-gray-500">Date de rejet</dt>

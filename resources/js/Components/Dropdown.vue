@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, inject, onMounted, onUnmounted, ref, type Ref } from 'vue';
 
 const props = withDefaults(
     defineProps<{
         align?: 'left' | 'right';
         width?: '48';
         contentClasses?: string;
+        menuId?: string;
     }>(),
     {
         align: 'right',
@@ -14,9 +15,17 @@ const props = withDefaults(
     },
 );
 
+type NavMenus = {
+    open: Ref<string | null>;
+    toggle: (id: string) => void;
+    close: () => void;
+};
+
+const menus = inject<NavMenus | null>('navMenus', null);
+
 const closeOnEscape = (e: KeyboardEvent) => {
-    if (open.value && e.key === 'Escape') {
-        open.value = false;
+    if (isOpen.value && e.key === 'Escape') {
+        close();
     }
 };
 
@@ -39,20 +48,41 @@ const alignmentClasses = computed(() => {
     }
 });
 
-const open = ref(false);
+const localOpen = ref(false);
+const isOpen = computed(() => (props.menuId && menus ? menus.open.value === props.menuId : localOpen.value));
+
+const toggle = () => {
+    if (props.menuId && menus) {
+        menus.toggle(props.menuId);
+
+        return;
+    }
+
+    localOpen.value = !localOpen.value;
+};
+
+const close = () => {
+    if (props.menuId && menus) {
+        menus.close();
+
+        return;
+    }
+
+    localOpen.value = false;
+};
 </script>
 
 <template>
     <div class="relative">
-        <div @click="open = !open">
+        <div class="touch-manipulation" @click="toggle">
             <slot name="trigger" />
         </div>
 
         <!-- Full Screen Dropdown Overlay -->
         <div
-            v-show="open"
+            v-show="isOpen"
             class="fixed inset-0 z-40"
-            @click="open = false"
+            @click="close"
         ></div>
 
         <Transition
@@ -64,11 +94,11 @@ const open = ref(false);
             leave-to-class="opacity-0 scale-95"
         >
             <div
-                v-show="open"
-                class="absolute z-50 mt-2 rounded-md shadow-lg"
+                v-show="isOpen"
+                class="absolute z-50 mt-2 max-h-[70vh] overflow-y-auto rounded-md shadow-lg"
                 :class="[widthClass, alignmentClasses]"
                 style="display: none"
-                @click="open = false"
+                @click="close"
             >
                 <div
                     class="rounded-md ring-1 ring-black ring-opacity-5"

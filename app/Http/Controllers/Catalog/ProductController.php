@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers\Catalog;
 
+use App\Enums\AdjustmentMotif;
 use App\Enums\Permission;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Catalog\StoreProductRequest;
 use App\Http\Requests\Catalog\UpdateProductRequest;
 use App\Models\Product;
+use App\Services\AuditLogger;
 use App\Support\CatalogPresenter;
+use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -31,6 +34,7 @@ class ProductController extends Controller
             ->when($request->input('status') === 'inactive', fn ($builder) => $builder->where('is_active', false))
             ->orderBy('name');
 
+        $includePurchasePrice = $request->user()->hasPermission(Permission::UpdatePrices);
         $products = $query->paginate(15)->withQueryString();
 
         $categories = Product::query()
@@ -42,7 +46,7 @@ class ProductController extends Controller
 
         return Inertia::render('Catalog/Products/Index', [
             'products' => [
-                'data' => $products->getCollection()->map(fn (Product $product) => CatalogPresenter::product($product))->all(),
+                'data' => $products->getCollection()->map(fn (Product $product) => CatalogPresenter::product($product, true, $includePurchasePrice))->all(),
                 'links' => $products->linkCollection()->toArray(),
                 'meta' => [
                     'current_page' => $products->currentPage(),
@@ -59,6 +63,7 @@ class ProductController extends Controller
             ],
             'categories' => $categories,
             'canManage' => $request->user()->can('create', Product::class),
+            'canViewPurchasePrice' => $includePurchasePrice,
         ]);
     }
 
@@ -102,10 +107,15 @@ class ProductController extends Controller
         $product->load(['inventories.location']);
 
         return Inertia::render('Catalog/Products/Show', [
-            'product' => CatalogPresenter::product($product),
+            'product' => CatalogPresenter::product($product, true, $request->user()->can('updatePrice', $product)),
             'canManage' => $request->user()->can('update', $product),
             'canMutateStock' => $request->user()->can('mutateStock', $product),
             'canUpdatePrice' => $request->user()->can('updatePrice', $product),
+            'canViewPurchasePrice' => $request->user()->can('updatePrice', $product),
+            'adjustmentMotifs' => collect(AdjustmentMotif::cases())->map(fn (AdjustmentMotif $motif) => [
+                'value' => $motif->value,
+                'label' => $motif->label(),
+            ])->values(),
         ]);
     }
 
@@ -123,7 +133,7 @@ class ProductController extends Controller
             ->values();
 
         return Inertia::render('Catalog/Products/Edit', [
-            'product' => CatalogPresenter::product($product),
+            'product' => CatalogPresenter::product($product, true, $request->user()->can('updatePrice', $product)),
             'categories' => $categories,
             'canUpdatePrice' => $request->user()->can('updatePrice', $product),
         ]);
@@ -131,7 +141,14 @@ class ProductController extends Controller
 
     public function update(UpdateProductRequest $request, Product $product): RedirectResponse
     {
+        $before = $this->priceSnapshot($product);
         $product->update($request->validated());
+        $product->refresh();
+        $after = $this->priceSnapshot($product);
+
+        if ($before !== $after) {
+            app(AuditLogger::class)->record($request->user(), 'product.price_changed', $product, $before, $after);
+        }
 
         return redirect()
             ->route('products.show', $product)
@@ -144,6 +161,12 @@ class ProductController extends Controller
 
         $product->update(['is_active' => false]);
 
+        app(AuditLogger::class)->record($request->user(), 'product.deactivated', $product, [
+            'is_active' => true,
+        ], [
+            'is_active' => false,
+        ]);
+
         return back()->with('status', 'Article désactivé. L’historique est conservé.');
     }
 
@@ -153,6 +176,23 @@ class ProductController extends Controller
 
         $product->update(['is_active' => true]);
 
+        app(AuditLogger::class)->record($request->user(), 'product.activated', $product, [
+            'is_active' => false,
+        ], [
+            'is_active' => true,
+        ]);
+
         return back()->with('status', 'Article réactivé.');
+    }
+
+    /**
+     * @return array{purchase_price: ?string, sale_price: string}
+     */
+    private function priceSnapshot(Product $product): array
+    {
+        return [
+            'purchase_price' => $product->purchase_price === null ? null : Money::normalize($product->purchase_price),
+            'sale_price' => Money::normalize($product->sale_price),
+        ];
     }
 }

@@ -1,13 +1,25 @@
 <?php
 
+use App\Http\Controllers\Alerts\AlertController;
 use App\Http\Controllers\Api\MeController;
+use App\Http\Controllers\Audit\AuditLogController;
 use App\Http\Controllers\Catalog\ProductController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Finance\CashController;
+use App\Http\Controllers\Finance\CashDeclarationController;
+use App\Http\Controllers\Finance\ExchangeController;
+use App\Http\Controllers\Finance\ExpenseController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProfilePhotoController;
+use App\Http\Controllers\Rentals\RentalController;
+use App\Http\Controllers\Requests\CustomerRequestController;
+use App\Http\Controllers\Sales\SaleController;
+use App\Http\Controllers\Savings\SavingsController;
 use App\Http\Controllers\Stock\ProductStockController;
 use App\Http\Controllers\Stock\StockLocationController;
 use App\Http\Controllers\Stock\StockMovementController;
 use App\Http\Controllers\Supply\ArrivalController;
+use App\Http\Controllers\Users\InvitationController;
 use App\Services\BootstrapRegistrationService;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -25,8 +37,75 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::post('/profile/photo', [ProfilePhotoController::class, 'store'])->name('profile.photo.store');
+    Route::delete('/profile/photo', [ProfilePhotoController::class, 'destroy'])->name('profile.photo.destroy');
+    Route::get('/utilisateurs/{member}/photo', [ProfilePhotoController::class, 'show'])->name('users.photo');
+
+    Route::middleware('permission:manage_employees')->group(function () {
+        Route::get('/utilisateurs', [InvitationController::class, 'index'])->name('users.invitations.index');
+        Route::get('/utilisateurs/inviter', [InvitationController::class, 'create'])->name('users.invitations.create');
+        Route::post('/utilisateurs/invitations', [InvitationController::class, 'store'])->name('users.invitations.store');
+        Route::delete('/utilisateurs/invitations/{invitation}', [InvitationController::class, 'destroy'])->name('users.invitations.destroy');
+    });
 
     Route::get('/api/me', MeController::class)->name('api.me');
+
+    Route::middleware('permission:create_sales')->group(function () {
+        Route::get('/ventes', [SaleController::class, 'index'])->name('sales.index');
+        Route::get('/ventes/nouvelle', [SaleController::class, 'create'])->name('sales.create');
+        Route::get('/ventes/recherche', [SaleController::class, 'create'])->name('sales.search');
+        Route::post('/ventes', [SaleController::class, 'store'])->name('sales.store');
+        Route::get('/ventes/{sale}/facture', [SaleController::class, 'invoice'])->name('sales.invoice');
+        Route::get('/ventes/{sale}', [SaleController::class, 'show'])->name('sales.show');
+        Route::post('/ventes/{sale}/annuler', [SaleController::class, 'cancel'])
+            ->middleware('permission:cancel_sales')
+            ->name('sales.cancel');
+    });
+
+    Route::middleware('permission:create_sales')->group(function () {
+        Route::get('/caisse/comptage', [CashDeclarationController::class, 'index'])->name('cash.counts.index');
+        Route::post('/caisse/comptage', [CashDeclarationController::class, 'store'])->name('cash.counts.store');
+    });
+
+    Route::middleware('permission:manage_expenses')->group(function () {
+        Route::get('/caisse', [CashController::class, 'index'])->name('cash.index');
+        Route::get('/caisse/change', [ExchangeController::class, 'index'])->name('cash.exchange');
+        Route::post('/caisse/taux', [ExchangeController::class, 'storeRate'])->name('cash.rates.store');
+        Route::post('/caisse/change', [ExchangeController::class, 'store'])->name('cash.exchange.store');
+        Route::post('/caisse/correction', [CashDeclarationController::class, 'adjust'])->name('cash.adjust');
+        Route::post('/caisse/comptage/{cashDeclaration}/valider', [CashDeclarationController::class, 'validateDeclaration'])->name('cash.counts.validate');
+        Route::post('/caisse/comptage/{cashDeclaration}/corriger', [CashDeclarationController::class, 'correct'])->name('cash.counts.correct');
+        Route::get('/depenses', [ExpenseController::class, 'index'])->name('expenses.index');
+        Route::get('/depenses/nouvelle', [ExpenseController::class, 'create'])->name('expenses.create');
+        Route::post('/depenses', [ExpenseController::class, 'store'])->name('expenses.store');
+        Route::get('/depenses/{expense}', [ExpenseController::class, 'show'])->name('expenses.show');
+        Route::post('/depenses/{expense}/valider', [ExpenseController::class, 'validateExpense'])->name('expenses.validate');
+        Route::post('/depenses/{expense}/refuser', [ExpenseController::class, 'refuse'])->name('expenses.refuse');
+    });
+
+    Route::middleware('permission:create_customer_requests')->group(function () {
+        Route::get('/demandes', [CustomerRequestController::class, 'index'])->name('requests.index');
+        Route::get('/demandes/nouvelle', [CustomerRequestController::class, 'create'])->name('requests.create');
+        Route::post('/demandes', [CustomerRequestController::class, 'store'])->name('requests.store');
+        Route::post('/demandes/suggestions/{restockSuggestion}', [CustomerRequestController::class, 'updateSuggestion'])
+            ->middleware('permission:manage_sales')
+            ->name('requests.suggestions.update');
+        Route::get('/demandes/{customerRequest}', [CustomerRequestController::class, 'show'])->name('requests.show');
+        Route::post('/demandes/{customerRequest}/satisfaire', [CustomerRequestController::class, 'fulfill'])->name('requests.fulfill');
+        Route::post('/demandes/{customerRequest}/annuler', [CustomerRequestController::class, 'cancel'])->name('requests.cancel');
+    });
+
+    Route::middleware(['permission:manage_rentals', 'feature:rentals'])->group(function () {
+        Route::get('/locations', [RentalController::class, 'index'])->name('rentals.index');
+        Route::get('/locations/nouvelle', [RentalController::class, 'create'])->name('rentals.create');
+        Route::post('/locations', [RentalController::class, 'store'])->name('rentals.store');
+        Route::get('/locations/{rental}', [RentalController::class, 'show'])->name('rentals.show');
+        Route::post('/locations/{rental}/cloturer', [RentalController::class, 'close'])->name('rentals.close');
+    });
+
+    Route::get('/alertes', [AlertController::class, 'index'])->name('alerts.index');
+    Route::middleware('permission:view_reports')->get('/epargne', [SavingsController::class, 'show'])->name('savings.show');
+    Route::middleware('permission:view_audit')->get('/audit', [AuditLogController::class, 'index'])->name('audit.index');
 
     Route::middleware('permission:search_products')->group(function () {
         Route::get('/articles', [ProductController::class, 'index'])->name('products.index');

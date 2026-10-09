@@ -3,10 +3,12 @@ import GuestLayout from '@/Layouts/GuestLayout.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
+import PasswordInput from '@/Components/PasswordInput.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
 const form = useForm({
+    civility: '',
     name: '',
     email: '',
     password: '',
@@ -37,6 +39,24 @@ const submit = () => {
 
         <form @submit.prevent="submit">
             <div>
+                <InputLabel for="civility" value="Civilité" />
+
+                <select
+                    id="civility"
+                    v-model="form.civility"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold"
+                    required
+                    autofocus
+                >
+                    <option value="" disabled>Choisir</option>
+                    <option value="monsieur">Monsieur</option>
+                    <option value="madame">Madame</option>
+                </select>
+
+                <InputError class="mt-2" :message="form.errors.civility" />
+            </div>
+
+            <div class="mt-4">
                 <InputLabel for="name" value="Nom complet" />
 
                 <TextInput
@@ -45,7 +65,6 @@ const submit = () => {
                     class="mt-1 block w-full"
                     v-model="form.name"
                     required
-                    autofocus
                     autocomplete="name"
                 />
 
@@ -70,9 +89,8 @@ const submit = () => {
             <div class="mt-4">
                 <InputLabel for="password" value="Mot de passe" />
 
-                <TextInput
+                <PasswordInput
                     id="password"
-                    type="password"
                     class="mt-1 block w-full"
                     v-model="form.password"
                     required
@@ -88,9 +106,8 @@ const submit = () => {
                     value="Confirmer le mot de passe"
                 />
 
-                <TextInput
+                <PasswordInput
                     id="password_confirmation"
-                    type="password"
                     class="mt-1 block w-full"
                     v-model="form.password_confirmation"
                     required

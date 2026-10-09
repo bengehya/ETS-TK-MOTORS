@@ -3,6 +3,7 @@ import GuestLayout from '@/Layouts/GuestLayout.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
+import PasswordInput from '@/Components/PasswordInput.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
@@ -58,9 +59,8 @@ const submit = () => {
             <div class="mt-4">
                 <InputLabel for="password" value="Mot de passe" />
 
-                <TextInput
+                <PasswordInput
                     id="password"
-                    type="password"
                     class="mt-1 block w-full"
                     v-model="form.password"
                     required
@@ -87,6 +87,13 @@ const submit = () => {
                     Se connecter
                 </PrimaryButton>
             </div>
+
+            <p class="mt-6 text-center text-sm text-gray-600">
+                Vous avez reçu un code d’invitation ?
+                <Link :href="route('invitations.accept')" class="font-medium text-brand-navy underline hover:text-brand-gold">
+                    Activer mon compte
+                </Link>
+            </p>
 
             <p v-if="canRegister" class="mt-6 text-center text-sm text-gray-600">
                 Premier accès de l’organisation ?

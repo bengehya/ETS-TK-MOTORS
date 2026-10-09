@@ -13,9 +13,20 @@ defineProps<{
 const user = usePage().props.auth.user!;
 
 const form = useForm({
+    civility: user.civility ?? '',
+    first_name: user.first_name ?? '',
+    last_name: user.last_name ?? '',
     name: user.name,
     email: user.email,
 });
+
+const submit = () => {
+    if (form.first_name.trim() !== '' && form.last_name.trim() !== '') {
+        form.name = `${form.first_name.trim()} ${form.last_name.trim()}`;
+    }
+
+    form.patch(route('profile.update'));
+};
 </script>
 
 <template>
@@ -26,16 +37,64 @@ const form = useForm({
             </h2>
 
             <p class="mt-1 text-sm text-gray-600">
-                Mettez à jour votre nom et votre adresse e-mail.
+                Complétez votre civilité, votre prénom et votre nom. Rien n’est déduit de votre adresse e-mail.
             </p>
         </header>
 
         <form
-            @submit.prevent="form.patch(route('profile.update'))"
+            @submit.prevent="submit"
             class="mt-6 space-y-6"
         >
             <div>
-                <InputLabel for="name" value="Nom complet" />
+                <InputLabel for="civility" value="Civilité" />
+
+                <select
+                    id="civility"
+                    v-model="form.civility"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold"
+                >
+                    <option value="">Non renseignée</option>
+                    <option value="monsieur">Monsieur</option>
+                    <option value="madame">Madame</option>
+                </select>
+
+                <p v-if="!form.civility" class="mt-1 text-xs text-gray-500">
+                    À compléter pour personnaliser l’accueil.
+                </p>
+
+                <InputError class="mt-2" :message="form.errors.civility" />
+            </div>
+
+            <div>
+                <InputLabel for="first_name" value="Prénom" />
+
+                <TextInput
+                    id="first_name"
+                    type="text"
+                    class="mt-1 block w-full"
+                    v-model="form.first_name"
+                    autocomplete="given-name"
+                />
+
+                <InputError class="mt-2" :message="form.errors.first_name" />
+            </div>
+
+            <div>
+                <InputLabel for="last_name" value="Nom" />
+
+                <TextInput
+                    id="last_name"
+                    type="text"
+                    class="mt-1 block w-full"
+                    v-model="form.last_name"
+                    autocomplete="family-name"
+                />
+
+                <InputError class="mt-2" :message="form.errors.last_name" />
+            </div>
+
+            <div>
+                <InputLabel for="name" value="Nom affiché" />
 
                 <TextInput
                     id="name"

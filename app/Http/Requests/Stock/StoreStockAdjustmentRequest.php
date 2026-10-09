@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Stock;
 
+use App\Enums\AdjustmentMotif;
 use App\Models\Location;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -26,7 +27,20 @@ class StoreStockAdjustmentRequest extends FormRequest
             ],
             'direction' => ['required', 'in:increase,decrease'],
             'quantity' => ['required', 'integer', 'min:1'],
-            'reason' => ['required', 'string', 'min:8', 'max:500'],
+            'motif' => ['required', Rule::enum(AdjustmentMotif::class)],
+            'reason' => ['nullable', 'string', 'max:500', 'required_if:motif,autre', 'min:8'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'motif.required' => 'Le motif est obligatoire.',
+            'reason.required_if' => 'Précisez le motif de cette correction exceptionnelle.',
+            'reason.min' => 'La précision du motif doit contenir au moins 8 caractères.',
         ];
     }
 

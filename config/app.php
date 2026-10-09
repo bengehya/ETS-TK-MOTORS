@@ -47,8 +47,8 @@ return [
     |--------------------------------------------------------------------------
     |
     | This URL is used by the console to properly generate URLs when using
-    | the Artisan command line tool. You should set this to the root of
-    | the application so that it's available within Artisan commands.
+    | the Artisan command line tool. HTTP requests keep the host and scheme
+    | of the incoming request, so a changing tunnel URL is not written here.
     |
     */
 

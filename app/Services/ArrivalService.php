@@ -14,7 +14,10 @@ use InvalidArgumentException;
 
 class ArrivalService
 {
-    public function __construct(private readonly InventoryService $inventory) {}
+    public function __construct(
+        private readonly InventoryService $inventory,
+        private readonly AuditLogger $audit,
+    ) {}
 
     public function record(
         User $user,
@@ -37,7 +40,7 @@ class ArrivalService
 
         $reference = trim((string) $supplierReference);
 
-        return Arrival::query()->create([
+        $arrival = Arrival::query()->create([
             'organization_id' => $user->organization_id,
             'product_id' => $product->id,
             'location_id' => $location->id,
@@ -46,6 +49,14 @@ class ArrivalService
             'recorded_by' => $user->id,
             'status' => ArrivalStatus::Pending,
         ]);
+
+        $this->audit->record($user, 'arrival.recorded', $arrival, null, [
+            'product_id' => $product->id,
+            'location_id' => $location->id,
+            'quantity' => $quantity,
+        ]);
+
+        return $arrival;
     }
 
     public function approve(User $user, Arrival $arrival): Arrival
@@ -81,6 +92,14 @@ class ArrivalService
                     'stock_movement_id' => $movement->id,
                 ])->save();
 
+                $this->audit->record($user, 'arrival.validated', $locked, [
+                    'status' => ArrivalStatus::Pending->value,
+                ], [
+                    'status' => ArrivalStatus::Validated->value,
+                    'quantity' => $locked->quantity,
+                    'stock_movement_id' => $movement->id,
+                ]);
+
                 return $locked->refresh()->load(['product', 'location', 'recorder', 'validator', 'stockMovement']);
             });
         } catch (InactiveProductException $exception) {
@@ -112,6 +131,12 @@ class ArrivalService
                 'rejected_at' => now(),
                 'rejection_reason' => $reason,
             ])->save();
+
+            $this->audit->record($user, 'arrival.rejected', $locked, [
+                'status' => ArrivalStatus::Pending->value,
+            ], [
+                'status' => ArrivalStatus::Rejected->value,
+            ], $reason);
 
             return $locked->refresh()->load(['product', 'location', 'recorder', 'rejector']);
         });

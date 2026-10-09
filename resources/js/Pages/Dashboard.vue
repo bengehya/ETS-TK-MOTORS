@@ -4,7 +4,7 @@ import EmptyState from '@/Components/Dashboard/EmptyState.vue';
 import PeriodTabs from '@/Components/Dashboard/PeriodTabs.vue';
 import SalesChart from '@/Components/Dashboard/SalesChart.vue';
 import StatCard from '@/Components/Dashboard/StatCard.vue';
-import UnavailableModule from '@/Components/Dashboard/UnavailableModule.vue';
+import UserAvatar from '@/Components/UserAvatar.vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 
 type ArrivalRow = {
@@ -17,6 +17,11 @@ type ArrivalRow = {
 };
 
 defineProps<{
+    welcome: string;
+    profile: {
+        name: string;
+        photo_url: string | null;
+    };
     periode: string;
     periodes: { value: string; label: string }[];
     canViewCatalog: boolean;
@@ -27,7 +32,12 @@ defineProps<{
         boutique_quantity: number;
         depot_quantity: number;
         active_products: number;
-        low_stock: { threshold_defined: boolean; message: string };
+        low_stock: {
+            threshold_defined: boolean;
+            count: number;
+            message: string;
+            items: { id: number; code: string; name: string; quantity: number; threshold: number }[];
+        };
         exhausted: { count: number; items: { id: number | null; code: string | null; name: string | null; quantity: number }[] };
     } | null;
     arrivals: {
@@ -36,19 +46,25 @@ defineProps<{
         rejected: ArrivalRow[];
     } | null;
     finance?: {
-        sales: { available: boolean; reason: string; today_count: number; today_quantity: number; today_amount: number | null };
-        profit: { available: boolean; reason: string; amount: number | null };
-        cash: { available: boolean; reason: string; amount: number | null };
-        expenses: { available: boolean; reason: string; total: number | null; recent: unknown[] };
-        top_sold: { id: number | null; code: string | null; name: string | null; quantity_sold: number; amount: number | null }[];
-        least_sold: { id: number | null; code: string | null; name: string | null; quantity_sold: number; amount: number | null }[];
-        chart: { label: string; empty: boolean; points: { key: string; label: string; quantity: number; count: number }[] };
+        sales: {
+            available: boolean;
+            today_count: number;
+            today_quantity: number;
+            today_amount: string;
+            period_count: number;
+            period_quantity: number;
+            period_amount: string;
+        };
+        profit: { available: boolean; amount: string; label?: string; by_currency?: { USD?: { gross_profit: string }; CDF?: { gross_profit: string } } };
+        cash: { available: boolean; amount: string; usd?: string; cdf?: string };
+        expenses: { available: boolean; total: string; recent: { id: number; reference: string; amount: string; reason: string }[] };
+        top_sold: { id: number | null; code: string | null; name: string | null; quantity_sold: number; amount: string | null }[];
+        least_sold: { id: number | null; code: string | null; name: string | null; quantity_sold: number; amount: string | null }[];
+        chart: { label: string; empty: boolean; points: { key: string; label: string; quantity: number; count: number; amount?: string }[] };
     };
 }>();
 
 const page = usePage();
-const user = page.props.auth.user;
-const organization = page.props.organization;
 const brand = page.props.brand;
 </script>
 
@@ -67,36 +83,59 @@ const brand = page.props.brand;
 
         <div class="py-8">
             <div class="mx-auto max-w-7xl space-y-8 px-4 sm:px-6 lg:px-8">
-                <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-                    <StatCard title="Utilisateur connecté">
-                        <p class="text-xl font-semibold text-brand-navy">{{ user?.name }}</p>
-                        <p class="mt-1 text-sm text-gray-600">{{ user?.email }}</p>
-                    </StatCard>
-                    <StatCard title="Rôle">
-                        <p class="text-xl font-semibold text-brand-navy">{{ user?.role_label }}</p>
-                        <p class="mt-1 font-mono text-sm text-gray-600">{{ user?.role }}</p>
-                    </StatCard>
-                    <StatCard title="Organisation">
-                        <p class="text-xl font-semibold text-brand-navy">{{ organization?.name }}</p>
-                        <p class="mt-1 text-sm text-gray-600">{{ brand.city }}</p>
-                    </StatCard>
-                </div>
+                <section class="rounded-xl border border-brand-gold/40 bg-white p-6 shadow-sm">
+                    <div class="flex flex-col gap-5 sm:flex-row sm:items-center">
+                        <UserAvatar :name="profile.name" :photo-url="profile.photo_url" size="lg" />
+                        <div>
+                            <p class="font-display text-2xl uppercase tracking-[0.06em] text-brand-navy">
+                                {{ welcome }}
+                            </p>
+                            <p class="mt-2 text-sm italic text-brand-gold">{{ brand.slogan }}</p>
+                        </div>
+                    </div>
+                </section>
 
                 <template v-if="canViewFinance && finance">
                     <section class="space-y-4">
                         <h3 class="font-display text-lg uppercase tracking-[0.12em] text-brand-navy">Pilotage</h3>
                         <div class="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
-                            <UnavailableModule title="Ventes du jour" :reason="finance.sales.reason" />
-                            <UnavailableModule title="Bénéfice du jour" :reason="finance.profit.reason" />
-                            <UnavailableModule title="Montant en caisse" :reason="finance.cash.reason" />
-                            <UnavailableModule title="Dépenses" :reason="finance.expenses.reason" />
-                            <StatCard v-if="stock" title="Stock faible" :href="route('stocks.boutique')">
-                                <EmptyState :message="stock.low_stock.message" />
-                                <p class="mt-3 text-sm text-brand-navy">
-                                    Articles épuisés en boutique : <span class="font-semibold">{{ stock.exhausted.count }}</span>
+                            <StatCard title="Ventes du jour" :href="route('sales.index')">
+                                <p class="text-3xl font-semibold text-brand-navy">{{ finance.sales.today_amount }}</p>
+                                <p class="mt-1 text-sm text-gray-600">
+                                    {{ finance.sales.today_quantity }} article(s) · {{ finance.sales.today_count }} vente(s)
                                 </p>
                             </StatCard>
+                            <StatCard title="Ventes de la période" :href="route('sales.index')">
+                                <p class="text-3xl font-semibold text-brand-navy">{{ finance.sales.period_amount }}</p>
+                                <p class="mt-1 text-sm text-gray-600">{{ finance.sales.period_quantity }} article(s)</p>
+                            </StatCard>
+                            <StatCard title="Bénéfice brut" :href="route('sales.index')">
+                                <p class="text-3xl font-semibold text-brand-navy">{{ finance.profit.amount }} USD</p>
+                                <p v-if="finance.profit.by_currency" class="mt-1 text-sm text-gray-600">CDF {{ finance.profit.by_currency.CDF?.gross_profit ?? '0.00' }}</p>
+                            </StatCard>
+                            <StatCard title="Caisse" :href="route('cash.index')">
+                                <p class="text-3xl font-semibold text-brand-navy">{{ finance.cash.usd ?? finance.cash.amount }} USD</p>
+                                <p class="mt-1 text-sm text-gray-600">{{ finance.cash.cdf ?? '0.00' }} CDF</p>
+                            </StatCard>
+                            <StatCard title="Dépenses validées" :href="route('expenses.index')">
+                                <p class="text-3xl font-semibold text-brand-navy">{{ finance.expenses.total }}</p>
+                                <EmptyState v-if="finance.expenses.recent.length === 0" class="mt-3" message="Aucune dépense validée sur la période." />
+                                <ul v-else class="mt-3 space-y-1 text-sm text-brand-navy">
+                                    <li v-for="expense in finance.expenses.recent" :key="expense.id">
+                                        {{ expense.reference }} · {{ expense.amount }}
+                                    </li>
+                                </ul>
+                            </StatCard>
+                            <StatCard v-if="stock" title="Stock faible" :href="route('alerts.index')">
+                                <p class="text-3xl font-semibold text-brand-navy">{{ stock.low_stock.count }}</p>
+                                <p class="mt-2 text-sm text-gray-600">{{ stock.low_stock.message }}</p>
+                            </StatCard>
                         </div>
+                        <p>
+                            <Link :href="route('savings.show')" class="text-sm font-medium text-brand-navy underline hover:text-brand-gold">
+                                Voir l’épargne suggérée
+                            </Link>
+                        </p>
                     </section>
 
                     <section class="grid gap-6 lg:grid-cols-2">
@@ -105,7 +144,7 @@ const brand = page.props.brand;
                             <ul v-else class="space-y-2 text-sm text-brand-navy">
                                 <li v-for="item in finance.top_sold" :key="String(item.id ?? item.code)">
                                     <span class="font-semibold">{{ item.name }}</span>
-                                    <span class="text-gray-500"> · {{ item.code }} · {{ item.quantity_sold }} vendu(s)</span>
+                                    <span class="text-gray-500"> · {{ item.code }} · {{ item.quantity_sold }} vendu(s) · {{ item.amount }}</span>
                                 </li>
                             </ul>
                         </StatCard>
@@ -114,7 +153,7 @@ const brand = page.props.brand;
                             <ul v-else class="space-y-2 text-sm text-brand-navy">
                                 <li v-for="item in finance.least_sold" :key="String(item.id ?? item.code)">
                                     <span class="font-semibold">{{ item.name }}</span>
-                                    <span class="text-gray-500"> · {{ item.code }} · {{ item.quantity_sold }} vendu(s)</span>
+                                    <span class="text-gray-500"> · {{ item.code }} · {{ item.quantity_sold }} vendu(s) · {{ item.amount }}</span>
                                 </li>
                             </ul>
                         </StatCard>
@@ -140,6 +179,7 @@ const brand = page.props.brand;
                         <StatCard title="Stock boutique" :href="route('stocks.boutique')">
                             <p class="text-3xl font-semibold text-brand-navy">{{ stock.boutique_quantity }}</p>
                             <p class="mt-1 text-xs text-gray-500">Disponible à la vente</p>
+                            <p class="mt-2 text-sm text-gray-600">{{ stock.low_stock.message }}</p>
                         </StatCard>
                         <StatCard title="Stock dépôt" :href="route('stocks.depot')">
                             <p class="text-3xl font-semibold text-brand-navy">{{ stock.depot_quantity }}</p>

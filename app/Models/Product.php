@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Services\InventoryService;
+use App\Services\LocationProvisioner;
 use Database\Factories\ProductFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,6 +17,15 @@ class Product extends Model
     use HasFactory;
 
     /**
+     * Seuil global appliqué à la création. Il n'est pas modifiable dans l'interface V1.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'low_stock_threshold' => 5,
+    ];
+
+    /**
      * @var list<string>
      */
     protected $fillable = [
@@ -24,7 +35,9 @@ class Product extends Model
         'name',
         'category',
         'description',
+        'purchase_price',
         'sale_price',
+        'low_stock_threshold',
         'is_active',
         'created_by',
     ];
@@ -35,7 +48,9 @@ class Product extends Model
     protected function casts(): array
     {
         return [
+            'purchase_price' => 'decimal:2',
             'sale_price' => 'decimal:2',
+            'low_stock_threshold' => 'integer',
             'is_active' => 'boolean',
         ];
     }
@@ -58,8 +73,8 @@ class Product extends Model
         });
 
         static::created(function (Product $product): void {
-            app(\App\Services\LocationProvisioner::class)->provision($product->organization);
-            app(\App\Services\InventoryService::class)->initializeForProduct($product);
+            app(LocationProvisioner::class)->provision($product->organization);
+            app(InventoryService::class)->initializeForProduct($product);
         });
     }
 
@@ -93,6 +108,14 @@ class Product extends Model
     public function stockMovements(): HasMany
     {
         return $this->hasMany(StockMovement::class);
+    }
+
+    /**
+     * @return HasMany<Sale, $this>
+     */
+    public function sales(): HasMany
+    {
+        return $this->hasMany(Sale::class);
     }
 
     public function scopeForOrganization(Builder $query, int $organizationId): Builder

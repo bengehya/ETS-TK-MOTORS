@@ -16,6 +16,14 @@ class RolePermissionsTest extends TestCase
         $this->assertFalse(RolePermissions::allows(Role::Employe, Permission::ValidateStockReceipts));
         $this->assertFalse(RolePermissions::allows(Role::Employe, Permission::ViewAudit));
         $this->assertTrue(RolePermissions::allows(Role::Employe, Permission::CreateSales));
+        $this->assertTrue(RolePermissions::allows(Role::BossPrincipal, Permission::CreateSales));
+        $this->assertTrue(RolePermissions::allows(Role::BossSecondaire, Permission::CreateSales));
+        $this->assertFalse(RolePermissions::allows(Role::Employe, Permission::ManageExpenses));
+        $this->assertFalse(RolePermissions::allows(Role::Employe, Permission::ManageRentals));
+        $this->assertTrue(RolePermissions::allows(Role::BossPrincipal, Permission::ManageRentals));
+        $this->assertTrue(RolePermissions::allows(Role::BossSecondaire, Permission::ManageRentals));
+        $this->assertFalse(RolePermissions::allows(Role::Employe, Permission::ViewReports));
+        $this->assertFalse(RolePermissions::allows(Role::Employe, Permission::ManageEmployees));
         $this->assertTrue(RolePermissions::allows(Role::Employe, Permission::RecordStockReceipts));
         $this->assertTrue(RolePermissions::allows(Role::BossSecondaire, Permission::ValidateStockReceipts));
     }
