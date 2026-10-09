@@ -14,35 +14,19 @@ class InvitationAcceptanceController extends Controller
 {
     public function __construct(private InvitationService $invitations) {}
 
-    public function create(string $token): Response
+    public function create(): Response
     {
-        $invitation = $this->invitations->findByToken($token);
-
-        if ($invitation === null || ! $invitation->isAcceptable()) {
-            return Inertia::render('Auth/AcceptInvitation', [
-                'token' => $token,
-                'invitation' => null,
-                'invalid' => true,
-            ]);
-        }
-
         return Inertia::render('Auth/AcceptInvitation', [
-            'token' => $token,
-            'invalid' => false,
-            'invitation' => [
-                'first_name' => $invitation->first_name,
-                'last_name' => $invitation->last_name,
-                'name' => $invitation->displayName(),
-                'email' => $invitation->email,
-                'civility_label' => $invitation->civility->label(),
-                'role_label' => $invitation->role->label(),
-            ],
+            'codeTtlDays' => InvitationService::CODE_TTL_DAYS,
         ]);
     }
 
-    public function store(AcceptInvitationRequest $request, string $token): RedirectResponse
+    public function store(AcceptInvitationRequest $request): RedirectResponse
     {
-        $user = $this->invitations->accept($token, $request->string('password')->toString());
+        $user = $this->invitations->accept(
+            $request->string('code')->toString(),
+            $request->string('password')->toString(),
+        );
 
         Auth::login($user);
         $request->session()->regenerate();

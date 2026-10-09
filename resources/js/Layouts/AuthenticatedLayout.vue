@@ -20,7 +20,8 @@ const canManageUsers = computed(() => Boolean(user?.permissions.includes('manage
 const canSell = computed(() => Boolean(user?.permissions.includes('create_sales')));
 const canManageExpenses = computed(() => Boolean(user?.permissions.includes('manage_expenses')));
 const canRequest = computed(() => Boolean(user?.permissions.includes('create_customer_requests')));
-const canManageRentals = computed(() => Boolean(user?.permissions.includes('manage_rentals')));
+const rentalsEnabled = computed(() => Boolean(page.props.features?.rentals));
+const canManageRentals = computed(() => rentalsEnabled.value && Boolean(user?.permissions.includes('manage_rentals')));
 const canViewReports = computed(() => Boolean(user?.permissions.includes('view_reports')));
 const canViewAudit = computed(() => Boolean(user?.permissions.includes('view_audit')));
 </script>

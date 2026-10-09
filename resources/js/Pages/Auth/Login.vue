@@ -88,6 +88,13 @@ const submit = () => {
                 </PrimaryButton>
             </div>
 
+            <p class="mt-6 text-center text-sm text-gray-600">
+                Vous avez reçu un code d’invitation ?
+                <Link :href="route('invitations.accept')" class="font-medium text-brand-navy underline hover:text-brand-gold">
+                    Activer mon compte
+                </Link>
+            </p>
+
             <p v-if="canRegister" class="mt-6 text-center text-sm text-gray-600">
                 Premier accès de l’organisation ?
                 <Link :href="route('register')" class="font-medium text-brand-navy underline hover:text-brand-gold">

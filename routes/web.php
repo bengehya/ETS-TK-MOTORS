@@ -78,7 +78,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/demandes/{customerRequest}/annuler', [CustomerRequestController::class, 'cancel'])->name('requests.cancel');
     });
 
-    Route::middleware('permission:manage_rentals')->group(function () {
+    Route::middleware(['permission:manage_rentals', 'feature:rentals'])->group(function () {
         Route::get('/locations', [RentalController::class, 'index'])->name('rentals.index');
         Route::get('/locations/nouvelle', [RentalController::class, 'create'])->name('rentals.create');
         Route::post('/locations', [RentalController::class, 'store'])->name('rentals.store');

@@ -41,7 +41,7 @@ const submit = () => {
                 <form class="space-y-4 rounded-xl border border-brand-gold/40 bg-white p-6 shadow-sm" @submit.prevent="submit">
                     <p class="text-sm text-gray-600">
                         Le patron principal peut inviter un employé ou un patron secondaire. Le patron secondaire peut inviter un employé.
-                        L’envoi par e-mail n’est pas disponible : le lien d’activation sera affiché une seule fois après la création.
+                        L’envoi par e-mail n’est pas disponible : un code à 5 chiffres sera affiché une seule fois après la création. La personne invitée choisit ensuite son propre mot de passe.
                     </p>
 
                     <div>

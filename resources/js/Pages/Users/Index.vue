@@ -21,7 +21,8 @@ type InvitationRow = {
 
 defineProps<{
     invitations: InvitationRow[];
-    activationUrl: string | null;
+    activationCode: string | null;
+    activationCodeTtlDays: number;
     emailDeliveryAvailable: boolean;
 }>();
 
@@ -47,12 +48,13 @@ const revoke = (id: number) => {
             <div class="mx-auto max-w-7xl space-y-4 px-4 sm:px-6 lg:px-8">
                 <FlashStatus />
 
-                <section v-if="activationUrl" class="rounded-xl border border-brand-gold bg-brand-cream p-5 text-sm text-brand-navy">
-                    <p class="font-semibold">Lien d’activation à transmettre</p>
+                <section v-if="activationCode" class="rounded-xl border border-brand-gold bg-brand-cream p-5 text-sm text-brand-navy">
+                    <p class="font-semibold">Code d’activation à transmettre</p>
                     <p class="mt-1 text-gray-700">
-                        Aucun e-mail n’a été envoyé. Copiez ce lien et transmettez-le par un canal sûr. Il ne sera plus affiché.
+                        Aucun e-mail n’a été envoyé. Communiquez ce code à la personne invitée par le moyen de votre choix.
+                        Il expire dans {{ activationCodeTtlDays }} jours, ne sert qu’une fois et ne sera plus affiché.
                     </p>
-                    <p class="mt-3 break-all rounded-md bg-white px-3 py-2 font-mono text-xs">{{ activationUrl }}</p>
+                    <p class="mt-3 rounded-md bg-white px-3 py-2 text-center font-mono text-2xl tracking-[0.4em] text-brand-navy">{{ activationCode }}</p>
                 </section>
 
                 <p v-if="!emailDeliveryAvailable" class="text-sm text-gray-600">

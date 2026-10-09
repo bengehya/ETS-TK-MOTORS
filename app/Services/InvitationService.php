@@ -14,11 +14,19 @@ use Illuminate\Validation\ValidationException;
 class InvitationService
 {
     /**
+     * Durée de validité d'un code d'invitation. Documentée pour la V1.
+     */
+    public const CODE_TTL_DAYS = 7;
+
+    /**
      * Crée une invitation réelle, sans envoi d'e-mail.
-     * Le lien d'activation n'est retourné qu'une fois : il n'est pas stocké en clair.
+     *
+     * Le code à 5 chiffres n'est retourné qu'une fois. Seul son empreinte
+     * SHA-256 est stockée. Un envoi par e-mail pourra transmettre ce même
+     * code plus tard, sans second système d'invitation et sans le journaliser.
      *
      * @param  array{first_name: string, last_name: string, email: string, civility: string, role: string}  $attributes
-     * @return array{invitation: Invitation, url: string}
+     * @return array{invitation: Invitation, code: string}
      */
     public function create(User $inviter, array $attributes): array
     {
@@ -47,7 +55,7 @@ class InvitationService
             ]);
         }
 
-        $plainToken = Str::random(64);
+        $plainCode = $this->issueUniqueCode();
 
         $invitation = Invitation::query()->create([
             'organization_id' => $inviter->organization_id,
@@ -57,8 +65,8 @@ class InvitationService
             'email' => $email,
             'civility' => Civility::from($attributes['civility']),
             'role' => $role,
-            'token_hash' => hash('sha256', $plainToken),
-            'expires_at' => now()->addDays(7),
+            'token_hash' => hash('sha256', $plainCode),
+            'expires_at' => now()->addDays(self::CODE_TTL_DAYS),
         ]);
 
         app(AuditLogger::class)->record($inviter, 'invitation.created', $invitation, null, [
@@ -69,7 +77,7 @@ class InvitationService
 
         return [
             'invitation' => $invitation,
-            'url' => route('invitations.accept', ['token' => $plainToken]),
+            'code' => $plainCode,
         ];
     }
 
@@ -93,13 +101,13 @@ class InvitationService
         ]);
     }
 
-    public function accept(string $token, string $password): User
+    public function accept(string $code, string $password): User
     {
-        $invitation = $this->findByToken($token);
+        $invitation = $this->findAcceptableByCode($code);
 
-        if ($invitation === null || ! $invitation->isAcceptable()) {
+        if ($invitation === null) {
             throw ValidationException::withMessages([
-                'token' => 'Cette invitation n’est plus valable.',
+                'code' => 'Ce code d’invitation n’est pas valable.',
             ]);
         }
 
@@ -109,19 +117,19 @@ class InvitationService
 
             if (! $locked->isAcceptable()) {
                 throw ValidationException::withMessages([
-                    'token' => 'Cette invitation n’est plus valable.',
+                    'code' => 'Ce code d’invitation n’est pas valable.',
                 ]);
             }
 
             if ($locked->role === Role::BossPrincipal) {
                 throw ValidationException::withMessages([
-                    'token' => 'Cette invitation n’est plus valable.',
+                    'code' => 'Ce code d’invitation n’est pas valable.',
                 ]);
             }
 
             if (User::query()->where('email', $locked->email)->exists()) {
                 throw ValidationException::withMessages([
-                    'token' => 'Un compte existe déjà pour cette adresse e-mail.',
+                    'code' => 'Ce code d’invitation n’est pas valable.',
                 ]);
             }
 
@@ -148,15 +156,54 @@ class InvitationService
         });
     }
 
-    public function findByToken(string $token): ?Invitation
+    public function findAcceptableByCode(string $code): ?Invitation
     {
-        if (! preg_match('/\A[A-Za-z0-9]{64}\z/', $token)) {
+        if (! preg_match('/\A\d{5}\z/', $code)) {
             return null;
         }
 
         return Invitation::query()
-            ->where('token_hash', hash('sha256', $token))
+            ->where('token_hash', hash('sha256', $code))
+            ->whereNull('accepted_at')
+            ->whereNull('revoked_at')
+            ->where('expires_at', '>', now())
             ->first();
+    }
+
+    private function issueUniqueCode(): string
+    {
+        for ($attempt = 0; $attempt < 8; $attempt++) {
+            $code = $this->deriveNumericCode();
+
+            $taken = Invitation::query()
+                ->where('token_hash', hash('sha256', $code))
+                ->whereNull('accepted_at')
+                ->whereNull('revoked_at')
+                ->where('expires_at', '>', now())
+                ->exists();
+
+            if (! $taken) {
+                return $code;
+            }
+        }
+
+        throw ValidationException::withMessages([
+            'email' => 'Impossible de créer l’invitation pour le moment. Réessayez.',
+        ]);
+    }
+
+    /**
+     * Dérive 5 chiffres (00000 à 99999) d'un UUID et d'octets aléatoires.
+     * Le résultat n'est pas une suite prévisible.
+     */
+    private function deriveNumericCode(): string
+    {
+        $material = Str::uuid()->toString().'|'.bin2hex(random_bytes(16));
+        $digest = hash('sha256', $material, true);
+        $unpacked = unpack('N', substr($digest, 0, 4));
+        $number = ($unpacked[1] ?? random_int(0, 99999)) % 100000;
+
+        return str_pad((string) $number, 5, '0', STR_PAD_LEFT);
     }
 
     private function assertCanAssign(User $inviter, Role $role): void

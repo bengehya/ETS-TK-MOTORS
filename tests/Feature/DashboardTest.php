@@ -68,6 +68,35 @@ class DashboardTest extends TestCase
             );
     }
 
+    public function test_low_stock_uses_the_default_threshold_of_five(): void
+    {
+        $boss = User::factory()->bossPrincipal()->create();
+        $product = Product::factory()->create([
+            'organization_id' => $boss->organization_id,
+            'name' => 'Bougie de seuil',
+            'purchase_price' => '2.00',
+            'sale_price' => '6.00',
+        ]);
+
+        $this->assertSame(5, $product->fresh()->low_stock_threshold);
+
+        $boutique = app(LocationProvisioner::class)->boutique($boss->organization);
+        $inventory = app(InventoryService::class);
+        $inventory->receive($boss, $product, $boutique, 5, 'Seuil');
+
+        $this->actingAs($boss)
+            ->get('/dashboard')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('stock.low_stock.count', 1));
+
+        $inventory->receive($boss, $product, $boutique, 1, 'Au-dessus du seuil');
+
+        $this->actingAs($boss)
+            ->get('/dashboard')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('stock.low_stock.count', 0));
+    }
+
     public function test_an_employee_never_receives_finance_payloads(): void
     {
         $employee = User::factory()->employe()->create();

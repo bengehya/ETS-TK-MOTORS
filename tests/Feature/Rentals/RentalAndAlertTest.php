@@ -3,6 +3,7 @@
 namespace Tests\Feature\Rentals;
 
 use App\Enums\RentalStatus;
+use App\Exceptions\OperationAlreadyProcessedException;
 use App\Models\Product;
 use App\Models\Rental;
 use App\Models\User;
@@ -29,17 +30,19 @@ class RentalAndAlertTest extends TestCase
         $this->assertSame(RentalStatus::Active, $rental->status);
         $this->assertGreaterThan(0, $rental->remainingMonths());
 
+        $this->actingAs($boss)->get(route('rentals.index'))->assertNotFound();
         $this->actingAs($boss)
             ->post(route('rentals.close', $rental), ['reason' => 'Fin anticipée'])
-            ->assertRedirect(route('rentals.show', $rental));
+            ->assertNotFound();
+        $this->assertSame(RentalStatus::Active, $rental->refresh()->status);
+
+        app(RentalService::class)->close($boss, $rental, 'Fin anticipée');
 
         $this->assertSame(RentalStatus::Closed, $rental->refresh()->status);
-
-        $this->actingAs($boss)
-            ->post(route('rentals.close', $rental), ['reason' => 'Encore'])
-            ->assertSessionHasErrors('reason');
-
         $this->assertSame(1, Rental::query()->count());
+
+        $this->expectException(OperationAlreadyProcessedException::class);
+        app(RentalService::class)->close($boss, $rental->refresh(), 'Encore');
     }
 
     public function test_an_overdue_rental_becomes_expired_without_being_deleted(): void
@@ -53,7 +56,9 @@ class RentalAndAlertTest extends TestCase
             1,
         );
 
-        $this->actingAs($boss)->get(route('rentals.show', $rental))->assertOk();
+        $this->actingAs($boss)->get(route('rentals.show', $rental))->assertNotFound();
+
+        app(RentalService::class)->syncExpired($boss);
 
         $this->assertSame(RentalStatus::Expired, $rental->refresh()->status);
         $this->assertSame(1, Rental::query()->count());
@@ -87,16 +92,15 @@ class RentalAndAlertTest extends TestCase
 
         app(ArrivalService::class)->record($employee, $product, $locations->depot($boss->organization), 2, 'FOURN-1');
 
-        $rental = app(RentalService::class)->open($boss, 'Local vitrine', '1500.00', now()->subDays(5)->toDateString(), 1);
+        app(RentalService::class)->open($boss, 'Local vitrine', '1500.00', now()->subDays(5)->toDateString(), 1);
 
         $this->actingAs($boss)
             ->get(route('alerts.index'))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->has('alerts')
-                ->where('alerts', function ($alerts) use ($rental): bool {
+                ->where('alerts', function ($alerts): bool {
                     $types = collect($alerts)->pluck('type');
-                    $rentalAlert = collect($alerts)->firstWhere('type', 'rental_expiration');
 
                     return $types->contains('low_stock')
                         && $types->contains('high_demand')
@@ -104,21 +108,16 @@ class RentalAndAlertTest extends TestCase
                         && $types->contains('repeated_request')
                         && $types->contains('urgent_request')
                         && $types->contains('pending_arrival')
-                        && $rentalAlert !== null
-                        && str_contains($rentalAlert['message'], '1500.00')
-                        && str_contains($rentalAlert['href'], '/locations/'.$rental->id);
+                        && ! $types->contains('rental_expiration');
                 })
             );
+        $this->assertStringNotContainsString('Locations', $this->actingAs($boss)->get(route('dashboard'))->getContent() ?? '');
 
         $employeePage = $this->actingAs($employee)->get(route('alerts.index'));
         $employeePage->assertOk();
         $employeePage->assertInertia(fn (Assert $page) => $page
             ->where('alerts', function ($alerts): bool {
-                $rentalAlert = collect($alerts)->firstWhere('type', 'rental_expiration');
-
-                return $rentalAlert !== null
-                    && ! str_contains($rentalAlert['message'], '1500.00')
-                    && ! array_key_exists('amount', $rentalAlert);
+                return collect($alerts)->firstWhere('type', 'rental_expiration') === null;
             })
         );
         $this->assertStringNotContainsString('1500.00', $employeePage->getContent());

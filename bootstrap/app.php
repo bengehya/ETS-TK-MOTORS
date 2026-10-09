@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\AlignSessionCookieSecurity;
 use App\Http\Middleware\EnsureBootstrapRegistrationIsOpen;
+use App\Http\Middleware\EnsureFeatureIsEnabled;
 use App\Http\Middleware\EnsureUserHasPermission;
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -33,6 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => EnsureUserHasPermission::class,
             'role' => EnsureUserHasRole::class,
             'registration.open' => EnsureBootstrapRegistrationIsOpen::class,
+            'feature' => EnsureFeatureIsEnabled::class,
         ]);
 
         $middleware->web(prepend: [

@@ -29,7 +29,7 @@ class AlertService
      */
     public function forUser(User $user): array
     {
-        if ($user->hasPermission(Permission::ManageRentals)) {
+        if (config('tkmotors.features.rentals') && $user->hasPermission(Permission::ManageRentals)) {
             $this->rentals->syncExpired($user);
         }
 
@@ -54,7 +54,9 @@ class AlertService
             $alerts = [...$alerts, ...$this->pendingArrivals($user)];
         }
 
-        $alerts = [...$alerts, ...$this->rentalExpirations($user, $includeAmounts)];
+        if (config('tkmotors.features.rentals')) {
+            $alerts = [...$alerts, ...$this->rentalExpirations($user, $includeAmounts)];
+        }
 
         return $alerts;
     }

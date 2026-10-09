@@ -38,6 +38,9 @@ export type PageProps<
     organization: Organization | null;
     brand: Brand;
     canRegister: boolean;
+    features: {
+        rentals: boolean;
+    };
     flash: {
         status: string | null;
     };

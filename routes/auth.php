@@ -37,14 +37,12 @@ Route::middleware('guest')->group(function () {
     Route::post('reset-password', [NewPasswordController::class, 'store'])
         ->name('password.store');
 
-    Route::get('invitation/{token}', [InvitationAcceptanceController::class, 'create'])
-        ->where('token', '[A-Za-z0-9]{64}')
+    Route::get('invitation', [InvitationAcceptanceController::class, 'create'])
         ->middleware('throttle:10,1')
         ->name('invitations.accept');
 
-    Route::post('invitation/{token}', [InvitationAcceptanceController::class, 'store'])
-        ->where('token', '[A-Za-z0-9]{64}')
-        ->middleware('throttle:6,1')
+    Route::post('invitation', [InvitationAcceptanceController::class, 'store'])
+        ->middleware('throttle:5,15')
         ->name('invitations.accept.store');
 });
 

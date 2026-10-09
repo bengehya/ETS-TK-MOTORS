@@ -17,6 +17,15 @@ class Product extends Model
     use HasFactory;
 
     /**
+     * Seuil global appliqué à la création. Il n'est pas modifiable dans l'interface V1.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'low_stock_threshold' => 5,
+    ];
+
+    /**
      * @var list<string>
      */
     protected $fillable = [
