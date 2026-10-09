@@ -6,6 +6,8 @@ use App\Http\Controllers\Audit\AuditLogController;
 use App\Http\Controllers\Catalog\ProductController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Finance\CashController;
+use App\Http\Controllers\Finance\CashDeclarationController;
+use App\Http\Controllers\Finance\ExchangeController;
 use App\Http\Controllers\Finance\ExpenseController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProfilePhotoController;
@@ -53,14 +55,26 @@ Route::middleware('auth')->group(function () {
         Route::get('/ventes/nouvelle', [SaleController::class, 'create'])->name('sales.create');
         Route::get('/ventes/recherche', [SaleController::class, 'create'])->name('sales.search');
         Route::post('/ventes', [SaleController::class, 'store'])->name('sales.store');
+        Route::get('/ventes/{sale}/facture', [SaleController::class, 'invoice'])->name('sales.invoice');
         Route::get('/ventes/{sale}', [SaleController::class, 'show'])->name('sales.show');
         Route::post('/ventes/{sale}/annuler', [SaleController::class, 'cancel'])
             ->middleware('permission:cancel_sales')
             ->name('sales.cancel');
     });
 
+    Route::middleware('permission:create_sales')->group(function () {
+        Route::get('/caisse/comptage', [CashDeclarationController::class, 'index'])->name('cash.counts.index');
+        Route::post('/caisse/comptage', [CashDeclarationController::class, 'store'])->name('cash.counts.store');
+    });
+
     Route::middleware('permission:manage_expenses')->group(function () {
         Route::get('/caisse', [CashController::class, 'index'])->name('cash.index');
+        Route::get('/caisse/change', [ExchangeController::class, 'index'])->name('cash.exchange');
+        Route::post('/caisse/taux', [ExchangeController::class, 'storeRate'])->name('cash.rates.store');
+        Route::post('/caisse/change', [ExchangeController::class, 'store'])->name('cash.exchange.store');
+        Route::post('/caisse/correction', [CashDeclarationController::class, 'adjust'])->name('cash.adjust');
+        Route::post('/caisse/comptage/{cashDeclaration}/valider', [CashDeclarationController::class, 'validateDeclaration'])->name('cash.counts.validate');
+        Route::post('/caisse/comptage/{cashDeclaration}/corriger', [CashDeclarationController::class, 'correct'])->name('cash.counts.correct');
         Route::get('/depenses', [ExpenseController::class, 'index'])->name('expenses.index');
         Route::get('/depenses/nouvelle', [ExpenseController::class, 'create'])->name('expenses.create');
         Route::post('/depenses', [ExpenseController::class, 'store'])->name('expenses.store');
@@ -73,6 +87,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/demandes', [CustomerRequestController::class, 'index'])->name('requests.index');
         Route::get('/demandes/nouvelle', [CustomerRequestController::class, 'create'])->name('requests.create');
         Route::post('/demandes', [CustomerRequestController::class, 'store'])->name('requests.store');
+        Route::post('/demandes/suggestions/{restockSuggestion}', [CustomerRequestController::class, 'updateSuggestion'])
+            ->middleware('permission:manage_sales')
+            ->name('requests.suggestions.update');
         Route::get('/demandes/{customerRequest}', [CustomerRequestController::class, 'show'])->name('requests.show');
         Route::post('/demandes/{customerRequest}/satisfaire', [CustomerRequestController::class, 'fulfill'])->name('requests.fulfill');
         Route::post('/demandes/{customerRequest}/annuler', [CustomerRequestController::class, 'cancel'])->name('requests.cancel');

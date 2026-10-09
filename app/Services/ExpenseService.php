@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\Currency;
 use App\Enums\ExpenseStatus;
 use App\Enums\Permission;
 use App\Exceptions\InsufficientCashException;
@@ -22,7 +23,7 @@ class ExpenseService
         private readonly AuditLogger $audit,
     ) {}
 
-    public function create(User $user, string $amount, string $reason, string $spentOn): Expense
+    public function create(User $user, string $amount, string $reason, string $spentOn, Currency $currency = Currency::Usd): Expense
     {
         $this->assertCanManage($user);
 
@@ -41,6 +42,7 @@ class ExpenseService
             'organization_id' => $user->organization_id,
             'reference' => 'TMP-'.Str::uuid(),
             'amount' => $amount,
+            'currency' => $currency,
             'reason' => $reason,
             'spent_on' => $spentOn,
             'status' => ExpenseStatus::Pending,
@@ -53,6 +55,7 @@ class ExpenseService
         $this->audit->record($user, 'expense.created', $expense, null, [
             'reference' => $expense->reference,
             'amount' => $amount,
+            'currency' => $currency->value,
             'reason' => $reason,
             'spent_on' => $spentOn,
             'status' => ExpenseStatus::Pending->value,
@@ -75,9 +78,10 @@ class ExpenseService
             }
 
             $amount = Money::normalize($locked->amount);
+            $currency = $locked->currency instanceof Currency ? $locked->currency : Currency::Usd;
 
             try {
-                $entry = $this->cash->outflow($user, $amount, $locked, 'Dépense '.$locked->reference);
+                $entry = $this->cash->outflow($user, $amount, $locked, 'Dépense '.$locked->reference, $currency);
                 $locked->forceFill([
                     'status' => ExpenseStatus::Validated,
                     'cash_entry_id' => $entry->id,
@@ -103,6 +107,7 @@ class ExpenseService
                 'status' => $locked->status->value,
                 'reference' => $locked->reference,
                 'amount' => $amount,
+                'currency' => $currency->value,
                 'cash_entry_id' => $locked->cash_entry_id,
             ], $locked->decision_note);
 

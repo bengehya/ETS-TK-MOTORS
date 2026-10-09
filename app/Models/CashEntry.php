@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\CashDirection;
+use App\Enums\Currency;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
@@ -17,6 +18,7 @@ class CashEntry extends Model
         'cash_account_id',
         'reference',
         'direction',
+        'currency',
         'amount',
         'balance_before',
         'balance_after',
@@ -34,6 +36,7 @@ class CashEntry extends Model
     {
         return [
             'direction' => CashDirection::class,
+            'currency' => Currency::class,
             'amount' => 'decimal:2',
             'balance_before' => 'decimal:2',
             'balance_after' => 'decimal:2',

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Currency;
 use App\Enums\ExpenseStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -16,6 +17,7 @@ class Expense extends Model
         'organization_id',
         'reference',
         'amount',
+        'currency',
         'reason',
         'spent_on',
         'status',
@@ -33,6 +35,7 @@ class Expense extends Model
     {
         return [
             'amount' => 'decimal:2',
+            'currency' => Currency::class,
             'spent_on' => 'date',
             'status' => ExpenseStatus::class,
             'decided_at' => 'datetime',

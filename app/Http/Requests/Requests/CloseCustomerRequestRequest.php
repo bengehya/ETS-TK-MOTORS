@@ -9,7 +9,7 @@ class CloseCustomerRequestRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasPermission(Permission::CreateCustomerRequests) ?? false;
+        return $this->user()?->hasPermission(Permission::ManageSales) ?? false;
     }
 
     /**

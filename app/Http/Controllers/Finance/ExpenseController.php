@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Finance;
 
+use App\Enums\Currency;
 use App\Enums\ExpenseStatus;
 use App\Exceptions\OperationAlreadyProcessedException;
 use App\Http\Controllers\Controller;
@@ -63,6 +64,7 @@ class ExpenseController extends Controller
             (string) $request->input('amount'),
             $request->string('reason')->toString(),
             $request->date('spent_on')->toDateString(),
+            $request->filled('currency') ? Currency::from($request->string('currency')->toString()) : Currency::Usd,
         );
 
         return redirect()

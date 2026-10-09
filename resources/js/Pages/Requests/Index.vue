@@ -16,14 +16,33 @@ const props = defineProps<{
             frequency: number;
             status_label: string;
             requested_at_label: string | null;
+            designation: string | null;
+            label: string | null;
             product: { name: string; code: string } | null;
             recorder: { name: string } | null;
         }[];
         links: { url: string | null; label: string; active: boolean }[];
     };
-    filters: { q: string; product_id: string; status: string; priority: string };
+    filters: { q: string; product_id: string; author_id: string; status: string; priority: string; date_from: string; date_to: string };
     statuses: { value: string; label: string }[];
     priorities: { value: string; label: string }[];
+    canManage: boolean;
+    authors: { id: number; name: string }[];
+    suggestions: {
+        id: number;
+        label: string | null;
+        request_count: number;
+        total_quantity: number;
+        observation_days: number;
+        last_requested_at_label: string | null;
+        boutique_quantity: number;
+        depot_quantity: number;
+        priority_label: string;
+        status: string;
+        status_label: string;
+    }[];
+    restock: { observation_days: number; repeat_threshold: number };
+    suggestionStatuses: { value: string; label: string }[];
 }>();
 
 const form = useForm({
@@ -31,6 +50,14 @@ const form = useForm({
     status: props.filters.status,
     priority: props.filters.priority,
     product_id: props.filters.product_id,
+    author_id: props.filters.author_id,
+    date_from: props.filters.date_from,
+    date_to: props.filters.date_to,
+});
+
+const suggestionForm = useForm({
+    status: 'reviewed',
+    justification: '',
 });
 
 const submit = () => form.get(route('requests.index'), { preserveState: true });
@@ -68,8 +95,44 @@ const submit = () => form.get(route('requests.index'), { preserveState: true });
                             <option v-for="priority in priorities" :key="priority.value" :value="priority.value">{{ priority.label }}</option>
                         </select>
                     </div>
+                    <div v-if="canManage">
+                        <InputLabel value="Auteur" />
+                        <select v-model="form.author_id" class="mt-1 block rounded-md border-gray-300 text-sm">
+                            <option value="">Tous</option>
+                            <option v-for="author in authors" :key="author.id" :value="String(author.id)">{{ author.name }}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <InputLabel value="Du" />
+                        <TextInput v-model="form.date_from" type="date" class="mt-1 block w-full" />
+                    </div>
+                    <div>
+                        <InputLabel value="Au" />
+                        <TextInput v-model="form.date_to" type="date" class="mt-1 block w-full" />
+                    </div>
                     <PrimaryButton :disabled="form.processing">Filtrer</PrimaryButton>
                 </form>
+
+                <section class="rounded-xl border border-brand-gold/40 bg-white p-6 shadow-sm">
+                    <h3 class="font-display text-lg uppercase tracking-[0.12em] text-brand-navy">Suggestions de ravitaillement</h3>
+                    <p class="mt-2 text-sm text-gray-600">
+                        Une suggestion apparaît à partir de {{ restock.repeat_threshold }} demandes sur {{ restock.observation_days }} jours.
+                        Elle n’achète rien et ne déplace aucun stock.
+                    </p>
+                    <p v-if="suggestions.length === 0" class="mt-3 text-sm text-gray-600">Aucune suggestion visible.</p>
+                    <article v-for="suggestion in suggestions" :key="suggestion.id" class="mt-4 border-t border-gray-100 pt-4 text-sm">
+                        <p class="font-medium text-brand-navy">{{ suggestion.label }} · {{ suggestion.priority_label }} · {{ suggestion.status_label }}</p>
+                        <p>{{ suggestion.request_count }} demande(s) · quantité {{ suggestion.total_quantity }} · période {{ suggestion.observation_days }} jours</p>
+                        <p>Boutique {{ suggestion.boutique_quantity }} · Dépôt {{ suggestion.depot_quantity }} · dernière demande {{ suggestion.last_requested_at_label }}</p>
+                        <form v-if="canManage" class="mt-2 flex flex-wrap items-end gap-2" @submit.prevent="suggestionForm.post(route('requests.suggestions.update', suggestion.id))">
+                            <select v-model="suggestionForm.status" class="rounded-md border-gray-300 text-sm">
+                                <option v-for="status in suggestionStatuses" :key="status.value" :value="status.value">{{ status.label }}</option>
+                            </select>
+                            <TextInput v-model="suggestionForm.justification" placeholder="Justification" class="block" />
+                            <PrimaryButton :disabled="suggestionForm.processing">Mettre à jour</PrimaryButton>
+                        </form>
+                    </article>
+                </section>
 
                 <div class="overflow-hidden rounded-xl border border-brand-gold/40 bg-white shadow-sm">
                     <p v-if="requests.data.length === 0" class="p-6 text-sm text-gray-600">Aucune demande enregistrée.</p>
@@ -89,7 +152,7 @@ const submit = () => form.get(route('requests.index'), { preserveState: true });
                         <tbody>
                             <tr v-for="item in requests.data" :key="item.id" class="border-t border-gray-100">
                                 <td class="px-4 py-3">
-                                    <Link :href="route('requests.show', item.id)" class="font-medium text-brand-navy underline">{{ item.product?.name }}</Link>
+                                    <Link :href="route('requests.show', item.id)" class="font-medium text-brand-navy underline">{{ item.label ?? item.product?.name ?? item.designation }}</Link>
                                 </td>
                                 <td class="px-4 py-3">{{ item.customer_name ?? '—' }}</td>
                                 <td class="px-4 py-3">{{ item.quantity ?? '—' }}</td>

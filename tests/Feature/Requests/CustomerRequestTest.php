@@ -45,22 +45,26 @@ class CustomerRequestTest extends TestCase
         $this->actingAs($employee)
             ->get(route('requests.index', ['q' => 'CRR-100', 'priority' => 'urgent']))
             ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->has('requests.data', 2));
+            ->assertInertia(fn (Assert $page) => $page->has('requests.data', 1));
 
         $this->actingAs($employee)
+            ->post(route('requests.fulfill', $first), ['note' => 'Pièce reçue'])
+            ->assertForbidden();
+
+        $this->actingAs($boss)
             ->post(route('requests.fulfill', $first), ['note' => 'Pièce reçue'])
             ->assertRedirect(route('requests.show', $first));
 
         $this->assertSame(CustomerRequestStatus::Fulfilled, $first->refresh()->status);
         $this->assertSame(4, CustomerRequest::query()->count());
 
-        $this->actingAs($employee)
+        $this->actingAs($boss)
             ->post(route('requests.cancel', $second), ['note' => 'Client parti'])
             ->assertRedirect();
 
         $this->assertSame(CustomerRequestStatus::Cancelled, $second->refresh()->status);
 
-        $this->actingAs($employee)
+        $this->actingAs($boss)
             ->post(route('requests.cancel', $second), ['note' => 'Deuxième fois'])
             ->assertSessionHasErrors('note');
     }

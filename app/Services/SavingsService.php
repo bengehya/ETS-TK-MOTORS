@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\Currency;
 use App\Enums\SaleStatus;
 use App\Models\Sale;
 use App\Support\Money;
@@ -19,6 +20,7 @@ class SavingsService
         $revenue = Sale::query()
             ->where('organization_id', $organizationId)
             ->where('status', SaleStatus::Completed)
+            ->where('currency', Currency::Usd->value)
             ->where('sold_at', '>=', now()->subDays(30))
             ->sum('line_total');
 

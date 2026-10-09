@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests\Finance;
 
+use App\Enums\Currency;
 use App\Enums\Permission;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreExpenseRequest extends FormRequest
 {
@@ -19,6 +21,7 @@ class StoreExpenseRequest extends FormRequest
     {
         return [
             'amount' => ['required', 'numeric', 'min:0.01', 'regex:/^\d+(\.\d{1,2})?$/'],
+            'currency' => ['sometimes', Rule::enum(Currency::class)],
             'reason' => ['required', 'string', 'max:1000'],
             'spent_on' => ['required', 'date', 'before_or_equal:today'],
         ];

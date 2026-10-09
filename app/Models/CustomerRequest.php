@@ -7,6 +7,7 @@ use App\Enums\CustomerRequestStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CustomerRequest extends Model
 {
@@ -16,6 +17,8 @@ class CustomerRequest extends Model
     protected $fillable = [
         'organization_id',
         'product_id',
+        'designation',
+        'designation_key',
         'recorded_by',
         'customer_name',
         'quantity',
@@ -50,6 +53,14 @@ class CustomerRequest extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * @return HasMany<CustomerRequestEvent, $this>
+     */
+    public function events(): HasMany
+    {
+        return $this->hasMany(CustomerRequestEvent::class)->orderBy('id');
     }
 
     /**

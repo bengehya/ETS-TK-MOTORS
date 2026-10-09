@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Enums\Currency;
 use App\Enums\SaleStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Sale extends Model
 {
@@ -15,6 +17,7 @@ class Sale extends Model
     protected $fillable = [
         'organization_id',
         'reference',
+        'currency',
         'product_id',
         'location_id',
         'seller_id',
@@ -24,6 +27,9 @@ class Sale extends Model
         'line_total',
         'cost_total',
         'profit',
+        'amount_received',
+        'change_given',
+        'client_token',
         'status',
         'sold_at',
         'cancelled_by',
@@ -43,6 +49,9 @@ class Sale extends Model
             'line_total' => 'decimal:2',
             'cost_total' => 'decimal:2',
             'profit' => 'decimal:2',
+            'amount_received' => 'decimal:2',
+            'change_given' => 'decimal:2',
+            'currency' => Currency::class,
             'status' => SaleStatus::class,
             'sold_at' => 'datetime',
             'cancelled_at' => 'datetime',
@@ -63,6 +72,14 @@ class Sale extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * @return HasMany<SaleLine, $this>
+     */
+    public function lines(): HasMany
+    {
+        return $this->hasMany(SaleLine::class)->orderBy('position');
     }
 
     /**

@@ -8,6 +8,7 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 
 const form = useForm({
     amount: '',
+    currency: 'USD',
     reason: '',
     spent_on: new Date().toISOString().slice(0, 10),
 });
@@ -39,6 +40,13 @@ const submit = () => {
                         <InputLabel for="amount" value="Montant" />
                         <TextInput id="amount" v-model="form.amount" type="number" min="0.01" step="0.01" class="mt-1 block w-full" required />
                         <InputError class="mt-2" :message="form.errors.amount" />
+                    </div>
+                    <div>
+                        <InputLabel for="currency" value="Devise" />
+                        <select id="currency" v-model="form.currency" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
+                            <option value="USD">USD</option>
+                            <option value="CDF">CDF</option>
+                        </select>
                     </div>
                     <div>
                         <InputLabel for="reason" value="Motif" />

@@ -1144,3 +1144,43 @@ Article actif dont la quantité en Boutique est comprise entre 1 et le seuil. Da
 
 **Location**  
 Fonction prévue dans l’application mais non disponible dans la version 1. Elle n’a pas de menu.
+
+---
+
+## Complément — navigation, ventes multi-articles et devises
+
+Ce complément remplace les passages plus anciens qui décrivent encore une vente d’un seul article, un menu Catalogue séparé, une entrée Épargne hors du menu Finances, ou une caisse sans devise.
+
+### Navigation
+
+- **Tableau de bord** et **Ventes** restent des accès directs.
+- **Stock** regroupe Vue générale, Articles, Boutique, Dépôt et Mouvements. La page Articles est l’ancien catalogue.
+- **Finances** regroupe Caisse, Dépenses, Change, Épargne et Comptage, selon les droits. L’employé n’y voit que le comptage.
+- **Locations** n’apparaît pas. Les données restent en place, mais la page n’est pas ouverte.
+- Sur téléphone, Stock, Finances, Approvisionnements et Profil sont fermés au départ. Un toucher les ouvre, un second toucher, un toucher à l’extérieur ou le choix d’une rubrique les ferme. Un seul menu reste ouvert.
+
+### Ventes
+
+Une vente peut contenir plusieurs articles, avec le bouton **+ Ajouter un article**. Elle sort toujours le stock de la Boutique. Le paiement se fait dans une seule devise, USD ou CDF. Le montant reçu se saisit dans cette devise. Si le client donne plus que le total, la monnaie est rendue et la caisse n’enregistre que le total de la vente. Un paiement inférieur au total est refusé.
+
+Après l’enregistrement, deux choix apparaissent : **Imprimer la facture** et **Terminer et quitter**. L’impression n’est pas obligatoire et ne crée pas une nouvelle vente. La facture peut être réimprimée depuis la vente.
+
+Seul un patron peut annuler une vente, avec un motif. L’annulation restaure chaque ligne en Boutique et retire le total dans la devise de la vente.
+
+### Demandes et ravitaillement
+
+Une demande porte sur un article du catalogue ou sur une désignation libre, avec une quantité, un auteur, une date, un commentaire facultatif, un statut et une priorité. L’employé voit ses demandes. Le patron voit toutes les demandes et peut les traiter.
+
+À partir de 3 demandes pour le même article ou la même désignation sur 30 jours, une suggestion de ravitaillement apparaît. Elle indique le nombre de demandes, la quantité totale, les stocks Boutique et Dépôt, la dernière demande et la priorité. Le patron peut la marquer étudiée, retenue, rejetée ou transformée en décision de réapprovisionnement. Une suggestion n’achète rien et ne déplace aucun stock.
+
+### Caisse, comptage et change
+
+La caisse a deux soldes distincts : USD et CDF. Ils ne s’additionnent pas. Une dépense est refusée si le solde de sa devise est insuffisant.
+
+**Notes et comptage de caisse** permet de noter la composition physique et un écart. Cela ne modifie pas les soldes. Une correction comptable est une opération séparée, réservée au patron, avec un motif.
+
+Le change convertit d’une caisse vers l’autre au taux fixé par le patron. Le taux est daté. Chaque change conserve le taux utilisé. Un changement de taux ne réécrit pas les changes déjà enregistrés. Un change n’est pas un bénéfice.
+
+### Bénéfice
+
+Le **bénéfice brut** est le prix de vente moins le coût d’achat enregistré au moment de la vente, hors ventes annulées, affiché par devise. Les dépenses validées sont montrées à part. L’application n’appelle pas « bénéfice net » un montant qui ne couvrirait pas toutes les charges. Le bénéfice n’est pas le solde de caisse.

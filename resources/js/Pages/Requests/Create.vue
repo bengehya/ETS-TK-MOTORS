@@ -18,8 +18,9 @@ const props = defineProps<{
 const search = useForm({ q: props.filters.q });
 const form = useForm({
     product_id: props.matches.length === 1 ? String(props.matches[0].id) : '',
+    designation: '',
     customer_name: '',
-    quantity: '',
+    quantity: '1',
     urgent: false,
     notes: '',
 });
@@ -64,20 +65,27 @@ const submit = () => {
 
                 <EmptyState v-if="filters.q !== '' && matches.length === 0" message="Aucun article ne correspond à cette recherche." />
 
-                <form v-if="matches.length > 0" class="space-y-4 rounded-xl border border-brand-gold/40 bg-white p-6 shadow-sm" @submit.prevent="submit">
-                    <label v-for="match in matches" :key="match.id" class="flex gap-3 rounded-md border border-gray-200 p-3">
-                        <input v-model="form.product_id" type="radio" :value="String(match.id)" />
-                        <span>{{ match.code }} — {{ match.name }}<template v-if="match.barcode"> · {{ match.barcode }}</template></span>
-                    </label>
+                <form class="space-y-4 rounded-xl border border-brand-gold/40 bg-white p-6 shadow-sm" @submit.prevent="submit">
+                    <div v-if="matches.length > 0" class="space-y-2">
+                        <label v-for="match in matches" :key="match.id" class="flex gap-3 rounded-md border border-gray-200 p-3">
+                            <input v-model="form.product_id" type="radio" :value="String(match.id)" />
+                            <span>{{ match.code }} — {{ match.name }}<template v-if="match.barcode"> · {{ match.barcode }}</template></span>
+                        </label>
+                    </div>
                     <InputError :message="form.errors.product_id" />
+                    <div>
+                        <InputLabel value="Désignation si l’article n’est pas au catalogue" />
+                        <TextInput v-model="form.designation" class="mt-1 block w-full" />
+                        <InputError class="mt-2" :message="form.errors.designation" />
+                    </div>
                     <div>
                         <InputLabel value="Nom du client (optionnel)" />
                         <TextInput v-model="form.customer_name" class="mt-1 block w-full" />
                         <InputError class="mt-2" :message="form.errors.customer_name" />
                     </div>
                     <div>
-                        <InputLabel value="Quantité si elle est connue" />
-                        <TextInput v-model="form.quantity" type="number" min="1" class="mt-1 block w-full" />
+                        <InputLabel value="Quantité demandée" />
+                        <TextInput v-model="form.quantity" type="number" min="1" class="mt-1 block w-full" required />
                         <InputError class="mt-2" :message="form.errors.quantity" />
                     </div>
                     <label class="flex items-center gap-2 text-sm text-brand-navy">
@@ -91,7 +99,7 @@ const submit = () => {
                     </div>
                     <div class="flex justify-end gap-3">
                         <Link :href="route('requests.index')" class="text-sm text-brand-navy underline">Retour</Link>
-                        <PrimaryButton :disabled="form.processing || form.product_id === ''">Enregistrer la demande</PrimaryButton>
+                        <PrimaryButton :disabled="form.processing">Enregistrer la demande</PrimaryButton>
                     </div>
                 </form>
             </div>

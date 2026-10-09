@@ -4,11 +4,13 @@ namespace App\Providers;
 
 use App\Enums\Permission;
 use App\Models\Arrival;
+use App\Models\CashDeclaration;
 use App\Models\CustomerRequest;
 use App\Models\Expense;
 use App\Models\Invitation;
 use App\Models\Product;
 use App\Models\Rental;
+use App\Models\RestockSuggestion;
 use App\Models\Sale;
 use App\Models\User;
 use App\Policies\ArrivalPolicy;
@@ -104,6 +106,26 @@ class AppServiceProvider extends ServiceProvider
             abort_unless($user !== null, 401);
 
             return CustomerRequest::query()
+                ->where('organization_id', $user->organization_id)
+                ->whereKey($value)
+                ->firstOrFail();
+        });
+
+        Route::bind('restockSuggestion', function (string $value): RestockSuggestion {
+            $user = request()->user();
+            abort_unless($user !== null, 401);
+
+            return RestockSuggestion::query()
+                ->where('organization_id', $user->organization_id)
+                ->whereKey($value)
+                ->firstOrFail();
+        });
+
+        Route::bind('cashDeclaration', function (string $value): CashDeclaration {
+            $user = request()->user();
+            abort_unless($user !== null, 401);
+
+            return CashDeclaration::query()
                 ->where('organization_id', $user->organization_id)
                 ->whereKey($value)
                 ->firstOrFail();

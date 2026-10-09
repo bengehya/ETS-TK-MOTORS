@@ -55,8 +55,8 @@ defineProps<{
             period_quantity: number;
             period_amount: string;
         };
-        profit: { available: boolean; amount: string };
-        cash: { available: boolean; amount: string };
+        profit: { available: boolean; amount: string; label?: string; by_currency?: { USD?: { gross_profit: string }; CDF?: { gross_profit: string } } };
+        cash: { available: boolean; amount: string; usd?: string; cdf?: string };
         expenses: { available: boolean; total: string; recent: { id: number; reference: string; amount: string; reason: string }[] };
         top_sold: { id: number | null; code: string | null; name: string | null; quantity_sold: number; amount: string | null }[];
         least_sold: { id: number | null; code: string | null; name: string | null; quantity_sold: number; amount: string | null }[];
@@ -109,11 +109,13 @@ const brand = page.props.brand;
                                 <p class="text-3xl font-semibold text-brand-navy">{{ finance.sales.period_amount }}</p>
                                 <p class="mt-1 text-sm text-gray-600">{{ finance.sales.period_quantity }} article(s)</p>
                             </StatCard>
-                            <StatCard title="Résultat de la période" :href="route('sales.index')">
-                                <p class="text-3xl font-semibold text-brand-navy">{{ finance.profit.amount }}</p>
+                            <StatCard title="Bénéfice brut" :href="route('sales.index')">
+                                <p class="text-3xl font-semibold text-brand-navy">{{ finance.profit.amount }} USD</p>
+                                <p v-if="finance.profit.by_currency" class="mt-1 text-sm text-gray-600">CDF {{ finance.profit.by_currency.CDF?.gross_profit ?? '0.00' }}</p>
                             </StatCard>
-                            <StatCard title="Montant en caisse" :href="route('cash.index')">
-                                <p class="text-3xl font-semibold text-brand-navy">{{ finance.cash.amount }}</p>
+                            <StatCard title="Caisse" :href="route('cash.index')">
+                                <p class="text-3xl font-semibold text-brand-navy">{{ finance.cash.usd ?? finance.cash.amount }} USD</p>
+                                <p class="mt-1 text-sm text-gray-600">{{ finance.cash.cdf ?? '0.00' }} CDF</p>
                             </StatCard>
                             <StatCard title="Dépenses validées" :href="route('expenses.index')">
                                 <p class="text-3xl font-semibold text-brand-navy">{{ finance.expenses.total }}</p>

@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers\Sales;
 
+use App\Enums\Currency;
 use App\Enums\Permission;
 use App\Enums\SaleStatus;
+use App\Exceptions\DuplicateSaleException;
 use App\Exceptions\InactiveProductException;
 use App\Exceptions\InsufficientCashException;
+use App\Exceptions\InsufficientPaymentException;
 use App\Exceptions\InsufficientStockException;
 use App\Exceptions\MissingPurchasePriceException;
 use App\Exceptions\SaleAlreadyCancelledException;
@@ -35,7 +38,7 @@ class SaleController extends Controller
 
         $sales = Sale::query()
             ->forOrganization($user->organization_id)
-            ->with(['product:id,code,name,barcode', 'seller', 'location:id,name', 'canceller'])
+            ->with(['product:id,code,name,barcode', 'lines.product:id,code,name,barcode', 'seller', 'location:id,name', 'canceller'])
             ->when($request->filled('q'), function ($query) use ($request): void {
                 $like = $this->like($request->string('q')->toString());
                 $query->where(function ($inner) use ($like): void {
@@ -99,30 +102,62 @@ class SaleController extends Controller
 
     public function store(StoreSaleRequest $request, SaleService $sales): RedirectResponse
     {
-        $product = Product::query()
-            ->forOrganization($request->user()->organization_id)
-            ->findOrFail($request->integer('product_id'));
+        $lines = collect($request->validated('lines'))
+            ->map(function (array $line) use ($request): array {
+                $product = Product::query()
+                    ->forOrganization($request->user()->organization_id)
+                    ->findOrFail($line['product_id']);
+
+                return [
+                    'product' => $product,
+                    'quantity' => (int) $line['quantity'],
+                ];
+            })
+            ->all();
 
         try {
-            $sale = $sales->sell($request->user(), $product, $request->integer('quantity'));
+            $sale = $sales->sellCart(
+                $request->user(),
+                $lines,
+                Currency::from($request->string('currency')->toString()),
+                $request->filled('amount_received') ? (string) $request->input('amount_received') : null,
+                $request->filled('client_token') ? $request->string('client_token')->toString() : null,
+            );
         } catch (Throwable $exception) {
-            $this->abortSale($exception);
+            $this->abortSale($exception, $request->input('lines', []));
         }
 
         return redirect()
             ->route('sales.show', $sale)
-            ->with('status', 'Vente '.$sale->reference.' enregistrée.');
+            ->with('status', 'Vente '.$sale->reference.' enregistrée.')
+            ->with('sale_confirmed', true);
     }
 
     public function show(Request $request, Sale $sale): Response
     {
-        $sale->load(['product', 'seller', 'location', 'canceller']);
+        $sale->load(['product', 'seller', 'location', 'canceller', 'lines.product']);
         $includeFinance = $request->user()->canViewCompanyFinance();
 
         return Inertia::render('Sales/Show', [
             'sale' => OperationsPresenter::sale($sale, $includeFinance),
             'canCancel' => $request->user()->hasPermission(Permission::CancelSales) && ! $sale->isCancelled(),
             'includeFinance' => $includeFinance,
+            'confirmed' => (bool) $request->session()->get('sale_confirmed', false),
+        ]);
+    }
+
+    public function invoice(Request $request, Sale $sale): Response
+    {
+        $sale->load(['product', 'seller', 'location', 'lines.product']);
+
+        return Inertia::render('Sales/Invoice', [
+            'sale' => OperationsPresenter::sale($sale, false),
+            'company' => [
+                'name' => config('tkmotors.company'),
+                'slogan' => config('tkmotors.slogan'),
+                'city' => config('tkmotors.city'),
+                'logo' => '/images/logo.jpg',
+            ],
         ]);
     }
 
@@ -131,7 +166,7 @@ class SaleController extends Controller
         try {
             $sales->cancel($request->user(), $sale, $request->string('reason')->toString());
         } catch (Throwable $exception) {
-            $this->abortSale($exception);
+            $this->abortSale($exception, []);
         }
 
         return redirect()
@@ -189,12 +224,27 @@ class SaleController extends Controller
         return '%'.$escaped.'%';
     }
 
-    private function abortSale(Throwable $exception): never
+    /**
+     * @param  list<array<string, mixed>>  $lines
+     */
+    private function abortSale(Throwable $exception, array $lines): never
     {
+        $productId = property_exists($exception, 'productId') ? $exception->productId : null;
+        $index = 0;
+
+        foreach ($lines as $position => $line) {
+            if ($productId !== null && (int) ($line['product_id'] ?? 0) === $productId) {
+                $index = (int) $position;
+                break;
+            }
+        }
+
         $field = match (true) {
             $exception instanceof MissingPurchasePriceException,
-            $exception instanceof InactiveProductException => 'product_id',
-            $exception instanceof InsufficientStockException => 'quantity',
+            $exception instanceof InactiveProductException => count($lines) > 1 ? 'lines.'.$index.'.product_id' : 'product_id',
+            $exception instanceof InsufficientStockException => count($lines) > 1 ? 'lines.'.$index.'.quantity' : 'quantity',
+            $exception instanceof InsufficientPaymentException => 'amount_received',
+            $exception instanceof DuplicateSaleException => 'client_token',
             $exception instanceof SaleAlreadyCancelledException,
             $exception instanceof InsufficientCashException => 'reason',
             default => throw $exception,

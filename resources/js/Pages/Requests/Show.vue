@@ -24,7 +24,11 @@ const props = defineProps<{
         product: { name: string; code: string } | null;
         recorder: { name: string; photo_url: string | null } | null;
         closer: { name: string; photo_url: string | null } | null;
+        designation: string | null;
+        label: string | null;
+        events: { id: number; action: string; note: string | null; created_at_label: string | null; user: { name: string } | null }[];
     };
+    canTreat: boolean;
 }>();
 
 const fulfillForm = useForm({ note: '' });
@@ -46,7 +50,7 @@ const cancel = () => cancelForm.post(route('requests.cancel', props.customerRequ
             <div class="mx-auto max-w-3xl space-y-6 px-4 sm:px-6 lg:px-8">
                 <FlashStatus />
                 <div class="rounded-xl border border-brand-gold/40 bg-white p-6 text-sm shadow-sm">
-                    <p class="font-medium text-brand-navy">{{ customerRequest.product?.name }} ({{ customerRequest.product?.code }})</p>
+                    <p class="font-medium text-brand-navy">{{ customerRequest.label ?? customerRequest.designation }} <span v-if="customerRequest.product">({{ customerRequest.product.code }})</span></p>
                     <p class="mt-2">Client : {{ customerRequest.customer_name ?? 'Non renseigné' }}</p>
                     <p class="mt-2">Quantité : {{ customerRequest.quantity ?? 'Non renseignée' }}</p>
                     <p class="mt-2">Priorité : {{ customerRequest.priority_label }} · Fréquence : {{ customerRequest.frequency }}</p>
@@ -60,7 +64,17 @@ const cancel = () => cancelForm.post(route('requests.cancel', props.customerRequ
                     </p>
                 </div>
 
-                <div v-if="customerRequest.status === 'open'" class="grid gap-4 md:grid-cols-2">
+                <section v-if="customerRequest.events?.length" class="rounded-xl border border-brand-gold/40 bg-white p-6 text-sm shadow-sm">
+                    <h3 class="font-medium text-brand-navy">Historique</h3>
+                    <ul class="mt-3 space-y-2">
+                        <li v-for="event in customerRequest.events" :key="event.id">
+                            {{ event.created_at_label }} · {{ event.user?.name }} · {{ event.action }}
+                            <span v-if="event.note"> — {{ event.note }}</span>
+                        </li>
+                    </ul>
+                </section>
+
+                <div v-if="canTreat && customerRequest.status === 'open'" class="grid gap-4 md:grid-cols-2">
                     <form class="rounded-xl border border-brand-gold/40 bg-white p-6 shadow-sm" @submit.prevent="fulfill">
                         <InputLabel value="Note de satisfaction (optionnelle)" />
                         <TextInput v-model="fulfillForm.note" class="mt-1 block w-full" />

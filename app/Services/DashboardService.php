@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\ArrivalStatus;
+use App\Enums\Currency;
 use App\Enums\ExpenseStatus;
 use App\Enums\Permission;
 use App\Enums\SaleStatus;
@@ -184,31 +185,22 @@ class DashboardService
 
         $completed = Sale::query()
             ->where('organization_id', $organizationId)
-            ->where('status', SaleStatus::Completed);
+            ->where('status', SaleStatus::Completed)
+            ->where('currency', Currency::Usd->value);
 
         $todayStart = now(config('app.timezone'))->startOfDay();
         $today = (clone $completed)->where('sold_at', '>=', $todayStart);
         $period = (clone $completed)->whereBetween('sold_at', [$range['start'], $range['end']]);
-
-        $ranked = (clone $completed)
-            ->select('product_id', DB::raw('SUM(quantity) as quantity_sold'), DB::raw('SUM(line_total) as amount_sold'))
-            ->groupBy('product_id')
-            ->orderByDesc('quantity_sold')
-            ->with('product:id,code,name')
-            ->get();
-
-        $mapRanked = fn ($items) => $items->map(fn (Sale $row) => [
-            'id' => $row->product?->id,
-            'code' => $row->product?->code,
-            'name' => $row->product?->name,
-            'quantity_sold' => (int) $row->quantity_sold,
-            'amount' => Money::normalize($row->amount_sold),
-        ])->values()->all();
+        $ranked = $this->rankedProducts($organizationId, $range['start'], $range['end']);
 
         $validatedExpenses = Expense::query()
             ->where('organization_id', $organizationId)
             ->where('status', ExpenseStatus::Validated)
+            ->where('currency', Currency::Usd->value)
             ->whereBetween('spent_on', [$range['start']->toDateString(), $range['end']->toDateString()]);
+
+        $cash = app(CashService::class);
+        $rate = app(ExchangeService::class)->currentRate($organizationId);
 
         return [
             'sales' => [
@@ -219,18 +211,24 @@ class DashboardService
                 'period_count' => (clone $period)->count(),
                 'period_quantity' => (int) (clone $period)->sum('quantity'),
                 'period_amount' => Money::normalize((clone $period)->sum('line_total')),
+                'by_currency' => $this->salesByCurrency($organizationId, $range['start'], $range['end'], $todayStart),
             ],
             'profit' => [
                 'available' => true,
+                'label' => 'Bénéfice brut',
                 'amount' => Money::normalize((clone $period)->sum('profit')),
+                'by_currency' => $this->marginByCurrency($organizationId, $range['start'], $range['end']),
             ],
             'cash' => [
                 'available' => true,
-                'amount' => app(CashService::class)->displayedBalance($organizationId),
+                'amount' => $cash->displayedBalance($organizationId, Currency::Usd),
+                'usd' => $cash->displayedBalance($organizationId, Currency::Usd),
+                'cdf' => $cash->displayedBalance($organizationId, Currency::Cdf),
             ],
             'expenses' => [
                 'available' => true,
                 'total' => Money::normalize((clone $validatedExpenses)->sum('amount')),
+                'by_currency' => $this->expensesByCurrency($organizationId, $range['start'], $range['end']),
                 'recent' => (clone $validatedExpenses)
                     ->with('creator')
                     ->orderByDesc('id')
@@ -239,10 +237,116 @@ class DashboardService
                     ->map(fn (Expense $expense) => OperationsPresenter::expense($expense))
                     ->all(),
             ],
-            'top_sold' => $mapRanked($ranked->take(5)),
-            'least_sold' => $mapRanked($ranked->sortBy('quantity_sold')->take(5)),
+            'exchange_rate' => $rate === null ? null : [
+                'cdf_per_usd' => Money::normalizeRate($rate->cdf_per_usd),
+                'effective_at_label' => $rate->effective_at?->timezone(config('app.timezone'))->format('d/m/Y H:i'),
+            ],
+            'top_sold' => array_slice($ranked, 0, 5),
+            'least_sold' => array_slice(array_reverse($ranked), 0, 5),
             'chart' => $this->chart($periode, $range, (clone $period)->get(['sold_at', 'quantity', 'line_total'])),
         ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function rankedProducts(int $organizationId, CarbonImmutable $start, CarbonImmutable $end): array
+    {
+        $rows = DB::table('sale_lines')
+            ->join('sales', 'sales.id', '=', 'sale_lines.sale_id')
+            ->join('products', 'products.id', '=', 'sale_lines.product_id')
+            ->where('sales.organization_id', $organizationId)
+            ->where('sales.status', SaleStatus::Completed->value)
+            ->where('sales.currency', Currency::Usd->value)
+            ->whereBetween('sales.sold_at', [$start, $end])
+            ->groupBy('products.id', 'products.code', 'products.name')
+            ->orderByDesc(DB::raw('SUM(sale_lines.quantity)'))
+            ->get([
+                'products.id',
+                'products.code',
+                'products.name',
+                DB::raw('SUM(sale_lines.quantity) as quantity_sold'),
+                DB::raw('SUM(sale_lines.line_total) as amount_sold'),
+            ]);
+
+        return $rows->map(fn ($row) => [
+            'id' => $row->id,
+            'code' => $row->code,
+            'name' => $row->name,
+            'quantity_sold' => (int) $row->quantity_sold,
+            'amount' => Money::normalize($row->amount_sold),
+        ])->all();
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    private function salesByCurrency(int $organizationId, CarbonImmutable $start, CarbonImmutable $end, $todayStart): array
+    {
+        $payload = [];
+
+        foreach (Currency::cases() as $currency) {
+            $period = Sale::query()
+                ->where('organization_id', $organizationId)
+                ->where('status', SaleStatus::Completed)
+                ->where('currency', $currency->value)
+                ->whereBetween('sold_at', [$start, $end]);
+            $today = (clone $period)->where('sold_at', '>=', $todayStart);
+
+            $payload[$currency->value] = [
+                'today_amount' => Money::normalize((clone $today)->sum('line_total')),
+                'period_amount' => Money::normalize((clone $period)->sum('line_total')),
+                'period_cost' => Money::normalize((clone $period)->sum('cost_total')),
+                'gross_profit' => Money::normalize((clone $period)->sum('profit')),
+            ];
+        }
+
+        return $payload;
+    }
+
+    /**
+     * @return array<string, array<string, string>>
+     */
+    private function marginByCurrency(int $organizationId, CarbonImmutable $start, CarbonImmutable $end): array
+    {
+        $payload = [];
+
+        foreach (Currency::cases() as $currency) {
+            $period = Sale::query()
+                ->where('organization_id', $organizationId)
+                ->where('status', SaleStatus::Completed)
+                ->where('currency', $currency->value)
+                ->whereBetween('sold_at', [$start, $end]);
+
+            $payload[$currency->value] = [
+                'revenue' => Money::normalize((clone $period)->sum('line_total')),
+                'cost' => Money::normalize((clone $period)->sum('cost_total')),
+                'gross_profit' => Money::normalize((clone $period)->sum('profit')),
+            ];
+        }
+
+        return $payload;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function expensesByCurrency(int $organizationId, CarbonImmutable $start, CarbonImmutable $end): array
+    {
+        $payload = [];
+
+        foreach (Currency::cases() as $currency) {
+            $total = Expense::query()
+                ->where('organization_id', $organizationId)
+                ->where('status', ExpenseStatus::Validated)
+                ->where('currency', $currency->value)
+                ->whereBetween('spent_on', [$start->toDateString(), $end->toDateString()])
+                ->sum('amount');
+
+            $payload[$currency->value] = Money::normalize($total);
+        }
+
+        return $payload;
     }
 
     /**

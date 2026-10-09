@@ -38,4 +38,14 @@ return [
         'rentals' => (bool) env('TKMOTORS_FEATURE_RENTALS', false),
     ],
 
+    /*
+    | Suggestions de ravitaillement. Une suggestion n'achète rien et ne
+    | déplace aucun stock. Le seuil compte les demandes d'un même article
+    | (ou d'une même désignation) sur la période d'observation.
+    */
+    'restock' => [
+        'observation_days' => 30,
+        'repeat_threshold' => 3,
+    ],
+
 ];

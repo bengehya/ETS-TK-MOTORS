@@ -43,5 +43,6 @@ export type PageProps<
     };
     flash: {
         status: string | null;
+        sale_confirmed?: boolean;
     };
 };

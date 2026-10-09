@@ -102,7 +102,7 @@ const submit = () => {
                                 <th class="px-4 py-3">Qté</th>
                                 <th class="px-4 py-3">Prix</th>
                                 <th class="px-4 py-3">Total</th>
-                                <th v-if="includeFinance" class="px-4 py-3">Résultat</th>
+                                <th v-if="includeFinance" class="px-4 py-3">Bénéfice brut</th>
                                 <th class="px-4 py-3">Vendeur</th>
                                 <th class="px-4 py-3">Date</th>
                                 <th class="px-4 py-3">Statut</th>

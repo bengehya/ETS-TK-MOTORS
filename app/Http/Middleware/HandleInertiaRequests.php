@@ -70,6 +70,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'flash' => [
                 'status' => $request->session()->get('status'),
+                'sale_confirmed' => (bool) $request->session()->get('sale_confirmed', false),
             ],
         ];
     }
