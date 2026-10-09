@@ -41,6 +41,7 @@ export type PageProps<
     features: {
         rentals: boolean;
     };
+    maintenance?: boolean;
     flash: {
         status: string | null;
         error?: string | null;

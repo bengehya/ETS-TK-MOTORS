@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Users\StoreInvitationRequest;
 use App\Models\Invitation;
 use App\Services\InvitationService;
+use App\Services\UserSuspensionService;
 use App\Support\UserPresenter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,7 +18,10 @@ use Inertia\Response;
 
 class InvitationController extends Controller
 {
-    public function __construct(private InvitationService $invitations) {}
+    public function __construct(
+        private InvitationService $invitations,
+        private UserSuspensionService $suspensions,
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -47,6 +51,7 @@ class InvitationController extends Controller
             ->all();
 
         return Inertia::render('Users/Index', [
+            'members' => $this->suspensions->present($request->user()),
             'invitations' => $invitations,
             'activationCode' => $request->session()->get('invitation_code'),
             'activationCodeTtlDays' => InvitationService::CODE_TTL_DAYS,

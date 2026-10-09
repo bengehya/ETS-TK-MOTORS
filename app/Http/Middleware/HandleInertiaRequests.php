@@ -68,6 +68,7 @@ class HandleInertiaRequests extends Middleware
             'features' => [
                 'rentals' => (bool) config('tkmotors.features.rentals'),
             ],
+            'maintenance' => (bool) ($user?->organization?->maintenance_enabled ?? false),
             'flash' => [
                 'status' => $request->session()->get('status'),
                 'error' => $request->session()->get('error'),

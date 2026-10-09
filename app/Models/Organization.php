@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Services\LocationProvisioner;
 use Database\Factories\OrganizationFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Organization extends Model
@@ -20,11 +22,30 @@ class Organization extends Model
         'slug',
     ];
 
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'maintenance_enabled' => 'boolean',
+            'maintenance_started_at' => 'datetime',
+        ];
+    }
+
     protected static function booted(): void
     {
         static::created(function (Organization $organization): void {
-            app(\App\Services\LocationProvisioner::class)->provision($organization);
+            app(LocationProvisioner::class)->provision($organization);
         });
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function maintenanceStarter(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'maintenance_started_by');
     }
 
     /**
