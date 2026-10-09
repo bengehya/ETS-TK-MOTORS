@@ -237,6 +237,7 @@ class OperationsPresenter
             'destination_currency' => $exchange->destination_currency->value,
             'destination_amount' => Money::normalize($exchange->destination_amount),
             'rate' => Money::normalizeRate($exchange->rate),
+            'fee_amount' => Money::normalize($exchange->fee_amount),
             'occurred_at_label' => self::label($exchange->occurred_at),
             'creator' => UserPresenter::identity($exchange->creator),
         ];
@@ -306,6 +307,9 @@ class OperationsPresenter
         return [
             'id' => $log->id,
             'action' => $log->action,
+            'result' => $log->result,
+            'actor_role' => $log->actor_role,
+            'correlation_id' => $log->correlation_id,
             'reason' => $log->reason,
             'old_values' => $log->old_values,
             'new_values' => $log->new_values,

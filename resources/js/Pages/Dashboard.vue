@@ -207,7 +207,7 @@ const brand = page.props.brand;
                             <p class="text-3xl font-semibold text-brand-navy">{{ arrivals.pending }}</p>
                         </StatCard>
                         <StatCard title="Nouvel arrivage" :href="route('arrivals.create')">
-                            <p class="text-sm text-gray-600">Enregistrer une marchandise. Le stock n’augmente qu’après validation d’un patron.</p>
+                            <p class="text-sm text-gray-600">Enregistrer une marchandise.</p>
                         </StatCard>
                     </div>
                     <div class="grid gap-6 lg:grid-cols-2">

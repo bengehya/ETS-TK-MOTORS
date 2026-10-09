@@ -19,6 +19,7 @@ class Exchange extends Model
         'destination_currency',
         'destination_amount',
         'rate',
+        'fee_amount',
         'exchange_rate_id',
         'source_entry_id',
         'destination_entry_id',
@@ -37,6 +38,7 @@ class Exchange extends Model
             'destination_currency' => Currency::class,
             'destination_amount' => 'decimal:2',
             'rate' => 'decimal:4',
+            'fee_amount' => 'decimal:2',
             'occurred_at' => 'datetime',
         ];
     }
@@ -55,5 +57,21 @@ class Exchange extends Model
     public function exchangeRate(): BelongsTo
     {
         return $this->belongsTo(ExchangeRate::class);
+    }
+
+    /**
+     * @return BelongsTo<CashEntry, $this>
+     */
+    public function sourceEntry(): BelongsTo
+    {
+        return $this->belongsTo(CashEntry::class, 'source_entry_id');
+    }
+
+    /**
+     * @return BelongsTo<CashEntry, $this>
+     */
+    public function destinationEntry(): BelongsTo
+    {
+        return $this->belongsTo(CashEntry::class, 'destination_entry_id');
     }
 }

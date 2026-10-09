@@ -24,8 +24,9 @@ class StoreSaleRequest extends FormRequest
             $this->merge(['currency' => Currency::Usd->value]);
         }
 
-        if ($this->input('amount_received') === '') {
-            $this->merge(['amount_received' => null]);
+        if (is_string($this->input('amount_received'))) {
+            $received = str_replace([' ', ','], ['', '.'], trim($this->input('amount_received')));
+            $this->merge(['amount_received' => $received === '' ? null : $received]);
         }
 
         if ($this->input('client_token') === '') {

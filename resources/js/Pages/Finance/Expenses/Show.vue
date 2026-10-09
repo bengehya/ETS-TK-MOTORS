@@ -76,7 +76,6 @@ const refuse = () => {
 
                 <div v-if="expense.status === 'pending'" class="space-y-4">
                     <form class="rounded-xl border border-brand-gold/40 bg-white p-6 shadow-sm" @submit.prevent="validateExpense">
-                        <p class="text-sm text-gray-600">La validation débite la caisse si le solde couvre le montant. Sinon la dépense est refusée et l’historique est conservé.</p>
                         <InputError class="mt-2" :message="validateForm.errors.expense" />
                         <div class="mt-4 flex justify-end">
                             <PrimaryButton :disabled="validateForm.processing">Valider la dépense</PrimaryButton>

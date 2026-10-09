@@ -9,6 +9,15 @@ use Illuminate\Validation\Rule;
 
 class StoreExchangeRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if (is_string($this->input('amount'))) {
+            $this->merge([
+                'amount' => str_replace([' ', ','], ['', '.'], trim($this->input('amount'))),
+            ]);
+        }
+    }
+
     public function authorize(): bool
     {
         return $this->user()?->hasPermission(Permission::ManageExpenses) ?? false;

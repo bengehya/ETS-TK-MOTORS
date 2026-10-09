@@ -202,7 +202,6 @@ const toggleActive = () => {
 
                     <form class="rounded-xl border border-brand-gold/40 bg-white p-6 shadow-sm" @submit.prevent="submitTransfer">
                         <h3 class="text-sm font-semibold uppercase tracking-wide text-brand-navy">Transfert dépôt → boutique</h3>
-                        <p class="mt-2 text-xs text-gray-500">Le stock dépôt n’est jamais vendable tant qu’il n’a pas été transféré.</p>
                         <div class="mt-4 space-y-3">
                             <div>
                                 <InputLabel value="Quantité" />
@@ -219,10 +218,6 @@ const toggleActive = () => {
 
                     <form class="rounded-xl border border-brand-gold/40 bg-white p-6 shadow-sm" @submit.prevent="submitAdjustment">
                         <h3 class="text-sm font-semibold uppercase tracking-wide text-brand-navy">Ajustement exceptionnel</h3>
-                        <p class="mt-2 text-xs text-gray-500">
-                            Correction de stock uniquement : perte, casse, erreur de comptage, différence d’inventaire, pièce retrouvée ou erreur de saisie.
-                            Ce formulaire n’annule pas une vente.
-                        </p>
                         <div class="mt-4 space-y-3">
                             <div>
                                 <InputLabel value="Emplacement" />

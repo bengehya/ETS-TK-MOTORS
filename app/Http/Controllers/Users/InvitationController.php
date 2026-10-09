@@ -81,7 +81,7 @@ class InvitationController extends Controller
 
         return redirect()
             ->route('users.invitations.index')
-            ->with('status', 'Invitation créée. L’envoi par e-mail n’est pas disponible : transmettez ce code à 5 chiffres par le moyen de votre choix. Il ne sera plus affiché.')
+            ->with('status', 'Invitation créée. Transmettez ce code à 5 chiffres. Il ne sera plus affiché.')
             ->with('invitation_code', $created['code']);
     }
 

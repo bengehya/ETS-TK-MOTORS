@@ -1,6 +1,8 @@
 <?php
 
+use App\Exceptions\OperationExceptionHandler;
 use App\Http\Middleware\AlignSessionCookieSecurity;
+use App\Http\Middleware\AssignCorrelationId;
 use App\Http\Middleware\EnsureBootstrapRegistrationIsOpen;
 use App\Http\Middleware\EnsureFeatureIsEnabled;
 use App\Http\Middleware\EnsureUserHasPermission;
@@ -38,6 +40,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->web(prepend: [
+            AssignCorrelationId::class,
             AlignSessionCookieSecurity::class,
             RefreshZiggyRoutes::class,
             UseBuiltViteAssetsWhenDevServerIsUnsafe::class,
@@ -51,5 +54,5 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectUsersTo(fn () => route('dashboard'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        OperationExceptionHandler::register($exceptions);
     })->create();

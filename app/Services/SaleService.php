@@ -84,171 +84,186 @@ class SaleService
             $quantities[$product->id] = ($quantities[$product->id] ?? 0) + $quantity;
         }
 
-        return DB::transaction(function () use ($user, $quantities, $order, $currency, $amountReceived, $clientToken): Sale {
-            if ($clientToken !== null) {
-                $existing = Sale::query()
-                    ->where('organization_id', $user->organization_id)
-                    ->where('client_token', $clientToken)
-                    ->lockForUpdate()
-                    ->first();
+        try {
+            return DB::transaction(function () use ($user, $quantities, $order, $currency, $amountReceived, $clientToken): Sale {
+                if ($clientToken !== null) {
+                    $existing = Sale::query()
+                        ->where('organization_id', $user->organization_id)
+                        ->where('client_token', $clientToken)
+                        ->lockForUpdate()
+                        ->first();
 
-                if ($existing !== null) {
-                    throw new DuplicateSaleException('Cette vente a déjà été enregistrée.');
-                }
-            }
-
-            $lockIds = array_keys($quantities);
-            sort($lockIds);
-
-            /** @var array<int, Product> $lockedProducts */
-            $lockedProducts = [];
-
-            foreach ($lockIds as $productId) {
-                /** @var Product $lockedProduct */
-                $lockedProduct = Product::query()->whereKey($productId)->lockForUpdate()->firstOrFail();
-                $lockedProducts[$productId] = $lockedProduct;
-
-                if (! $lockedProduct->is_active) {
-                    $exception = new InactiveProductException('Cet article est désactivé.');
-                    $exception->productId = $lockedProduct->id;
-                    throw $exception;
+                    if ($existing !== null) {
+                        throw new DuplicateSaleException('Cette vente a déjà été enregistrée.');
+                    }
                 }
 
-                if ($lockedProduct->purchase_price === null || $lockedProduct->purchase_price === '') {
-                    $exception = new MissingPurchasePriceException('La vente est refusée : le prix d’achat de cet article n’est pas renseigné.');
-                    $exception->productId = $lockedProduct->id;
-                    throw $exception;
+                $lockIds = array_keys($quantities);
+                sort($lockIds);
+
+                /** @var array<int, Product> $lockedProducts */
+                $lockedProducts = [];
+
+                foreach ($lockIds as $productId) {
+                    /** @var Product $lockedProduct */
+                    $lockedProduct = Product::query()->whereKey($productId)->lockForUpdate()->firstOrFail();
+                    $lockedProducts[$productId] = $lockedProduct;
+
+                    if (! $lockedProduct->is_active) {
+                        $exception = new InactiveProductException('Cet article est désactivé.');
+                        $exception->productId = $lockedProduct->id;
+                        throw $exception;
+                    }
+
+                    if ($lockedProduct->purchase_price === null || $lockedProduct->purchase_price === '') {
+                        $exception = new MissingPurchasePriceException('La vente est refusée : le prix d’achat de cet article n’est pas renseigné.');
+                        $exception->productId = $lockedProduct->id;
+                        throw $exception;
+                    }
                 }
-            }
 
-            $prepared = [];
-            $position = 1;
-            $quantityTotal = 0;
-            $lineTotal = '0.00';
-            $costTotal = '0.00';
-            $profitTotal = '0.00';
+                $prepared = [];
+                $position = 1;
+                $quantityTotal = 0;
+                $lineTotal = '0.00';
+                $costTotal = '0.00';
+                $profitTotal = '0.00';
 
-            foreach ($order as $productId) {
-                $lockedProduct = $lockedProducts[$productId];
-                $quantity = $quantities[$productId];
-                $unitSale = Money::normalize($lockedProduct->sale_price);
-                $unitCost = Money::normalize($lockedProduct->purchase_price);
-                $rowTotal = Money::mul($unitSale, $quantity);
-                $rowCost = Money::mul($unitCost, $quantity);
-                $rowProfit = Money::sub($rowTotal, $rowCost);
+                foreach ($order as $productId) {
+                    $lockedProduct = $lockedProducts[$productId];
+                    $quantity = $quantities[$productId];
+                    $unitSale = Money::normalize($lockedProduct->sale_price);
+                    $unitCost = Money::normalize($lockedProduct->purchase_price);
+                    $rowTotal = Money::mul($unitSale, $quantity);
+                    $rowCost = Money::mul($unitCost, $quantity);
+                    $rowProfit = Money::sub($rowTotal, $rowCost);
 
-                $prepared[] = [
-                    'product' => $lockedProduct,
-                    'quantity' => $quantity,
-                    'unit_sale_price' => $unitSale,
-                    'unit_purchase_cost' => $unitCost,
-                    'line_total' => $rowTotal,
-                    'cost_total' => $rowCost,
-                    'profit' => $rowProfit,
-                    'position' => $position,
-                ];
+                    $prepared[] = [
+                        'product' => $lockedProduct,
+                        'quantity' => $quantity,
+                        'unit_sale_price' => $unitSale,
+                        'unit_purchase_cost' => $unitCost,
+                        'line_total' => $rowTotal,
+                        'cost_total' => $rowCost,
+                        'profit' => $rowProfit,
+                        'position' => $position,
+                    ];
 
-                $position++;
-                $quantityTotal += $quantity;
-                $lineTotal = Money::add($lineTotal, $rowTotal);
-                $costTotal = Money::add($costTotal, $rowCost);
-                $profitTotal = Money::add($profitTotal, $rowProfit);
-            }
+                    $position++;
+                    $quantityTotal += $quantity;
+                    $lineTotal = Money::add($lineTotal, $rowTotal);
+                    $costTotal = Money::add($costTotal, $rowCost);
+                    $profitTotal = Money::add($profitTotal, $rowProfit);
+                }
 
-            $received = $amountReceived === null
-                ? $lineTotal
-                : Money::normalize($amountReceived);
+                $received = $amountReceived === null
+                    ? $lineTotal
+                    : Money::normalize($amountReceived);
 
-            if (Money::cmp($received, $lineTotal) < 0) {
-                throw new InsufficientPaymentException('Le montant reçu est inférieur au total à payer.');
-            }
-
-            $change = Money::sub($received, $lineTotal);
-            $boutique = $this->locations->boutique($user->organization);
-            $first = $prepared[0];
-
-            $sale = Sale::query()->create([
-                'organization_id' => $user->organization_id,
-                'reference' => 'TMP-'.Str::uuid(),
-                'currency' => $currency,
-                'product_id' => $first['product']->id,
-                'location_id' => $boutique->id,
-                'seller_id' => $user->id,
-                'quantity' => $quantityTotal,
-                'unit_sale_price' => $first['unit_sale_price'],
-                'unit_purchase_cost' => $first['unit_purchase_cost'],
-                'line_total' => $lineTotal,
-                'cost_total' => $costTotal,
-                'profit' => $profitTotal,
-                'amount_received' => $received,
-                'change_given' => $change,
-                'client_token' => $clientToken,
-                'status' => SaleStatus::Completed,
-                'sold_at' => now(),
-            ]);
-
-            $sale->reference = ReferenceCode::make('VTE', $sale->id);
-            $sale->save();
-
-            foreach ($prepared as $row) {
-                SaleLine::query()->create([
-                    'sale_id' => $sale->id,
-                    'product_id' => $row['product']->id,
-                    'quantity' => $row['quantity'],
-                    'unit_sale_price' => $row['unit_sale_price'],
-                    'unit_purchase_cost' => $row['unit_purchase_cost'],
-                    'line_total' => $row['line_total'],
-                    'cost_total' => $row['cost_total'],
-                    'profit' => $row['profit'],
-                    'position' => $row['position'],
-                ]);
-            }
-
-            foreach ($lockIds as $productId) {
-                try {
-                    $this->inventory->consumeForSale(
-                        $user,
-                        $lockedProducts[$productId],
-                        $quantities[$productId],
-                        Sale::class,
-                        $sale->id,
+                if (Money::cmp($received, $lineTotal) < 0) {
+                    throw new InsufficientPaymentException(
+                        'Le montant reçu est inférieur au total à payer.',
+                        $currency->value,
+                        $lineTotal,
+                        $received,
                     );
-                } catch (InsufficientStockException $exception) {
-                    $exception->productId = $productId;
-                    throw $exception;
                 }
-            }
 
-            $this->cash->inflow(
-                $user,
-                $lineTotal,
-                $sale,
-                'Encaissement '.$sale->reference,
-                $currency,
-            );
+                $change = Money::sub($received, $lineTotal);
+                $boutique = $this->locations->boutique($user->organization);
+                $first = $prepared[0];
 
-            $this->audit->record($user, 'sale.created', $sale, null, [
-                'reference' => $sale->reference,
-                'currency' => $currency->value,
-                'quantity' => $quantityTotal,
-                'line_total' => $lineTotal,
-                'cost_total' => $costTotal,
-                'profit' => $profitTotal,
-                'amount_received' => $received,
-                'change_given' => $change,
-                'seller_id' => $user->id,
-                'location_id' => $boutique->id,
-                'lines' => array_map(fn (array $row): array => [
-                    'product_id' => $row['product']->id,
-                    'quantity' => $row['quantity'],
-                    'unit_sale_price' => $row['unit_sale_price'],
-                    'unit_purchase_cost' => $row['unit_purchase_cost'],
-                    'line_total' => $row['line_total'],
-                ], $prepared),
-            ]);
+                $sale = Sale::query()->create([
+                    'organization_id' => $user->organization_id,
+                    'reference' => 'TMP-'.Str::uuid(),
+                    'currency' => $currency,
+                    'product_id' => $first['product']->id,
+                    'location_id' => $boutique->id,
+                    'seller_id' => $user->id,
+                    'quantity' => $quantityTotal,
+                    'unit_sale_price' => $first['unit_sale_price'],
+                    'unit_purchase_cost' => $first['unit_purchase_cost'],
+                    'line_total' => $lineTotal,
+                    'cost_total' => $costTotal,
+                    'profit' => $profitTotal,
+                    'amount_received' => $received,
+                    'change_given' => $change,
+                    'client_token' => $clientToken,
+                    'status' => SaleStatus::Completed,
+                    'sold_at' => now(),
+                ]);
 
-            return $sale->fresh(['product', 'seller', 'location', 'lines.product']);
-        });
+                $sale->reference = ReferenceCode::make('VTE', $sale->id);
+                $sale->save();
+
+                foreach ($prepared as $row) {
+                    SaleLine::query()->create([
+                        'sale_id' => $sale->id,
+                        'product_id' => $row['product']->id,
+                        'quantity' => $row['quantity'],
+                        'unit_sale_price' => $row['unit_sale_price'],
+                        'unit_purchase_cost' => $row['unit_purchase_cost'],
+                        'line_total' => $row['line_total'],
+                        'cost_total' => $row['cost_total'],
+                        'profit' => $row['profit'],
+                        'position' => $row['position'],
+                    ]);
+                }
+
+                foreach ($lockIds as $productId) {
+                    try {
+                        $this->inventory->consumeForSale(
+                            $user,
+                            $lockedProducts[$productId],
+                            $quantities[$productId],
+                            Sale::class,
+                            $sale->id,
+                        );
+                    } catch (InsufficientStockException $exception) {
+                        $exception->productId = $productId;
+                        throw $exception;
+                    }
+                }
+
+                $this->cash->inflow(
+                    $user,
+                    $lineTotal,
+                    $sale,
+                    'Encaissement '.$sale->reference,
+                    $currency,
+                );
+
+                $this->audit->record($user, 'sale.created', $sale, null, [
+                    'reference' => $sale->reference,
+                    'currency' => $currency->value,
+                    'quantity' => $quantityTotal,
+                    'line_total' => $lineTotal,
+                    'cost_total' => $costTotal,
+                    'profit' => $profitTotal,
+                    'amount_received' => $received,
+                    'change_given' => $change,
+                    'seller_id' => $user->id,
+                    'location_id' => $boutique->id,
+                    'lines' => array_map(fn (array $row): array => [
+                        'product_id' => $row['product']->id,
+                        'quantity' => $row['quantity'],
+                        'unit_sale_price' => $row['unit_sale_price'],
+                        'unit_purchase_cost' => $row['unit_purchase_cost'],
+                        'line_total' => $row['line_total'],
+                    ], $prepared),
+                ]);
+
+                return $sale->fresh(['product', 'seller', 'location', 'lines.product']);
+            });
+        } catch (InsufficientPaymentException $exception) {
+            $this->audit->safeRecord($user, 'sale.payment_insufficient', null, null, [
+                'currency' => $exception->currency,
+                'line_total' => $exception->total,
+                'amount_received' => $exception->received,
+            ], $exception->getMessage(), 'failure');
+
+            throw $exception;
+        }
     }
 
     public function cancel(User $user, Sale $sale, string $reason): Sale

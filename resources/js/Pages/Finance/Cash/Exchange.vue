@@ -6,8 +6,8 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, router, useForm } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
 
 defineProps<{
     balances: { USD: string; CDF: string };
@@ -21,6 +21,7 @@ defineProps<{
         destination_currency: string;
         destination_amount: string;
         rate: string;
+        fee_amount: string;
         occurred_at_label: string | null;
         creator: { name: string } | null;
     }[];
@@ -31,12 +32,16 @@ defineProps<{
         source_amount?: string;
         destination_currency?: string;
         destination_amount?: string;
+        fee_amount?: string;
         rate?: string;
         effective_at_label?: string | null;
+        balances_before?: { USD: string; CDF: string };
+        balances_after?: { USD: string; CDF: string };
     } | null;
     filters: { amount: string; source_currency: string };
 }>();
 
+const confirmed = computed(() => usePage().props.flash?.exchange ?? null);
 const rateForm = useForm({ cdf_per_usd: '' });
 const exchangeForm = useForm({ source_currency: 'USD', amount: '' });
 const previewAmount = ref('');
@@ -79,14 +84,19 @@ const convert = () => {
                 <FlashStatus />
                 <section class="rounded-xl border border-brand-gold/40 bg-white p-6 text-sm shadow-sm">
                     <p>Solde USD {{ balances.USD }} · Solde CDF {{ balances.CDF }}</p>
-                    <p class="mt-2">Un change transfère de la valeur entre les deux caisses. Il n’est pas un bénéfice commercial.</p>
+                    <div v-if="confirmed" class="mt-3 rounded-md bg-brand-cream p-3">
+                        <p>Change {{ confirmed.reference }} confirmé.</p>
+                        <p>Avant : {{ confirmed.before.USD }} USD · {{ confirmed.before.CDF }} CDF</p>
+                        <p>Après : {{ confirmed.after.USD }} USD · {{ confirmed.after.CDF }} CDF</p>
+                        <p>Frais : {{ confirmed.fee_amount }}</p>
+                    </div>
                     <p v-if="rate" class="mt-2">Taux en vigueur : {{ rate.cdf_per_usd }} CDF pour 1 USD, depuis le {{ rate.effective_at_label }}.</p>
                     <p v-else class="mt-2">Aucun taux n’est défini.</p>
                 </section>
 
                 <form class="space-y-3 rounded-xl border border-brand-gold/40 bg-white p-6 shadow-sm" @submit.prevent="saveRate">
                     <InputLabel for="cdf_per_usd" value="Nouveau taux : CDF pour 1 USD" />
-                    <TextInput id="cdf_per_usd" v-model="rateForm.cdf_per_usd" type="number" min="0.0001" step="0.0001" class="block w-full" required />
+                    <TextInput id="cdf_per_usd" v-model="rateForm.cdf_per_usd" type="text" inputmode="decimal" autocomplete="off" class="block w-full" required />
                     <InputError :message="rateForm.errors.cdf_per_usd" />
                     <PrimaryButton :disabled="rateForm.processing">Enregistrer le taux</PrimaryButton>
                 </form>
@@ -97,14 +107,18 @@ const convert = () => {
                         <option value="USD">USD vers CDF</option>
                         <option value="CDF">CDF vers USD</option>
                     </select>
-                    <TextInput v-model="previewAmount" type="number" min="0.01" step="0.01" class="block w-full" />
+                    <TextInput v-model="previewAmount" type="text" inputmode="decimal" autocomplete="off" class="block w-full" />
                     <SecondaryButton type="submit">Calculer l’aperçu</SecondaryButton>
                     <div v-if="preview" class="text-sm text-brand-navy">
+                        <p v-if="preview.balances_before">Avant : {{ preview.balances_before.USD }} USD · {{ preview.balances_before.CDF }} CDF</p>
                         <p v-if="!preview.available">{{ preview.message }}</p>
-                        <p v-else>
-                            {{ preview.source_amount }} {{ preview.source_currency }} deviennent {{ preview.destination_amount }} {{ preview.destination_currency }}
-                            au taux {{ preview.rate }} du {{ preview.effective_at_label }}.
-                        </p>
+                        <template v-else>
+                            <p>Après : {{ preview.balances_after?.USD }} USD · {{ preview.balances_after?.CDF }} CDF</p>
+                            <p>
+                                {{ preview.source_amount }} {{ preview.source_currency }} → {{ preview.destination_amount }} {{ preview.destination_currency }}
+                                au taux {{ preview.rate }} du {{ preview.effective_at_label }}. Frais {{ preview.fee_amount }}.
+                            </p>
+                        </template>
                     </div>
                 </form>
 
@@ -114,7 +128,7 @@ const convert = () => {
                         <option value="USD">Depuis USD</option>
                         <option value="CDF">Depuis CDF</option>
                     </select>
-                    <TextInput v-model="exchangeForm.amount" type="number" min="0.01" step="0.01" class="block w-full" required />
+                    <TextInput v-model="exchangeForm.amount" type="text" inputmode="decimal" autocomplete="off" class="block w-full" required />
                     <InputError :message="exchangeForm.errors.amount" />
                     <PrimaryButton :disabled="exchangeForm.processing">Confirmer le change</PrimaryButton>
                 </form>
@@ -125,7 +139,7 @@ const convert = () => {
                     <ul v-else class="mt-3 space-y-2 text-sm">
                         <li v-for="item in exchanges" :key="item.id">
                             {{ item.reference }} · {{ item.source_amount }} {{ item.source_currency }} → {{ item.destination_amount }} {{ item.destination_currency }}
-                            · taux {{ item.rate }} · {{ item.occurred_at_label }} · {{ item.creator?.name }}
+                            · taux {{ item.rate }} · frais {{ item.fee_amount }} · {{ item.occurred_at_label }} · {{ item.creator?.name }}
                         </li>
                     </ul>
                 </section>
