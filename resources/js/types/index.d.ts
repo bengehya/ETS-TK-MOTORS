@@ -43,6 +43,13 @@ export type PageProps<
     };
     flash: {
         status: string | null;
+        error?: string | null;
+        exchange?: {
+            reference: string;
+            before: { USD: string; CDF: string };
+            after: { USD: string; CDF: string };
+            fee_amount: string;
+        } | null;
         sale_confirmed?: boolean;
     };
 };

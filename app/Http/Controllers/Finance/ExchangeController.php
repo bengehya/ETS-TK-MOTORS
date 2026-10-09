@@ -27,10 +27,12 @@ class ExchangeController extends Controller
         $user = $request->user();
         $preview = null;
 
-        if ($request->filled('amount') && $request->filled('source_currency')) {
+        $sourceCurrency = Currency::tryFrom($request->string('source_currency')->toString());
+
+        if ($request->filled('amount') && $sourceCurrency !== null) {
             $preview = $exchange->preview(
                 $user->organization_id,
-                Currency::from($request->string('source_currency')->toString()),
+                $sourceCurrency,
                 $request->string('amount')->toString(),
             );
         }
@@ -95,6 +97,7 @@ class ExchangeController extends Controller
 
         return redirect()
             ->route('cash.exchange')
-            ->with('status', 'Change '.$created->reference.' enregistré. Ce transfert n’est pas un bénéfice.');
+            ->with('status', 'Change '.$created->reference.' enregistré.')
+            ->with('exchange_result', $exchange->settlement($created));
     }
 }

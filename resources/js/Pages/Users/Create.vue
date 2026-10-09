@@ -39,11 +39,6 @@ const submit = () => {
         <div class="py-8">
             <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
                 <form class="space-y-4 rounded-xl border border-brand-gold/40 bg-white p-6 shadow-sm" @submit.prevent="submit">
-                    <p class="text-sm text-gray-600">
-                        Le patron principal peut inviter un employé ou un patron secondaire. Le patron secondaire peut inviter un employé.
-                        L’envoi par e-mail n’est pas disponible : un code à 5 chiffres sera affiché une seule fois après la création. La personne invitée choisit ensuite son propre mot de passe.
-                    </p>
-
                     <div>
                         <InputLabel for="first_name" value="Prénom" />
                         <TextInput id="first_name" v-model="form.first_name" type="text" class="mt-1 block w-full" required autocomplete="given-name" />

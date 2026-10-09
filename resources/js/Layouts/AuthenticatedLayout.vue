@@ -46,6 +46,7 @@ const rentalsEnabled = computed(() => Boolean(page.props.features?.rentals));
 const canManageRentals = computed(() => rentalsEnabled.value && Boolean(user?.permissions.includes('manage_rentals')));
 const canViewReports = computed(() => Boolean(user?.permissions.includes('view_reports')));
 const canViewAudit = computed(() => Boolean(user?.permissions.includes('view_audit')));
+const operationError = computed(() => (typeof page.props.flash?.error === 'string' ? page.props.flash.error : null));
 </script>
 
 <template>
@@ -390,6 +391,10 @@ const canViewAudit = computed(() => Boolean(user?.permissions.includes('view_aud
                 <slot name="header" />
             </div>
         </header>
+
+        <div v-if="operationError" class="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
+            <p class="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ operationError }}</p>
+        </div>
 
         <main>
             <slot />

@@ -91,9 +91,7 @@ const correct = (id: number) => {
                     <p class="text-sm text-gray-600">Solde comptable USD {{ balances.USD }} · Solde comptable CDF {{ balances.CDF }}</p>
                     <p v-if="rate" class="mt-2 text-sm text-gray-600">
                         Taux enregistré : {{ rate.cdf_per_usd }} CDF pour 1 USD, depuis le {{ rate.effective_at_label }}.
-                        L’équivalent indiqué ne modifie aucun solde.
                     </p>
-                    <p class="mt-2 text-sm text-gray-600">Une note ou un comptage ne change pas la caisse comptable.</p>
                 </section>
 
                 <form class="space-y-4 rounded-xl border border-brand-gold/40 bg-white p-6 shadow-sm" @submit.prevent="submit">
@@ -145,7 +143,6 @@ const correct = (id: number) => {
 
                 <form v-if="canAdjust" class="space-y-3 rounded-xl border border-brand-gold/40 bg-white p-6 shadow-sm" @submit.prevent="adjustment.post(route('cash.adjust'))">
                     <h3 class="font-display text-lg uppercase tracking-[0.12em] text-brand-navy">Correction comptable distincte</h3>
-                    <p class="text-sm text-gray-600">Cette opération crée une écriture de caisse motivée. Elle est réservée au patron.</p>
                     <select v-model="adjustment.currency" class="block w-full rounded-md border-gray-300 text-sm">
                         <option value="USD">USD</option>
                         <option value="CDF">CDF</option>

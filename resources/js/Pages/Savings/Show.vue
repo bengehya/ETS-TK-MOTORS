@@ -41,9 +41,6 @@ defineProps<{
                             Soit {{ suggestion.rate_percent }} % de cette moyenne. Le chiffre d’affaires de la période est {{ suggestion.revenue }}.
                         </p>
                     </div>
-                    <p class="mt-4 text-sm text-gray-600">
-                        Cette suggestion n’est pas automatique. Aucun montant n’est retiré de la caisse.
-                    </p>
                 </section>
             </div>
         </div>

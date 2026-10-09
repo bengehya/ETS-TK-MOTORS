@@ -57,10 +57,6 @@ const search = () => {
             <div class="mx-auto max-w-7xl space-y-4 px-4 sm:px-6 lg:px-8">
                 <FlashStatus />
 
-                <p v-if="canMutateStock" class="text-sm text-gray-600">
-                    Pour une entrée, un transfert dépôt → boutique ou un ajustement, ouvrez la fiche de l’article.
-                </p>
-
                 <form class="grid gap-3 rounded-xl border border-brand-gold/40 bg-white p-4 sm:grid-cols-4" @submit.prevent="search">
                     <TextInput v-model="q" type="search" placeholder="Nom ou code" class="sm:col-span-2" />
                     <select v-model="category" class="rounded-md border-gray-300 text-sm">

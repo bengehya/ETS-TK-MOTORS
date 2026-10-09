@@ -61,9 +61,6 @@ defineProps<{
                             <p class="text-3xl font-semibold text-brand-navy">{{ balances.CDF }}</p>
                         </div>
                     </div>
-                    <p class="mt-2 text-sm text-gray-600">
-                        Les dollars et les francs ne sont pas additionnés. Les ventes, annulations, dépenses et changes alimentent la devise concernée.
-                    </p>
                     <p v-if="rate" class="mt-2 text-sm text-gray-600">
                         Taux de référence : {{ rate.cdf_per_usd }} CDF pour 1 USD, en vigueur le {{ rate.effective_at_label }}.
                     </p>
@@ -76,7 +73,6 @@ defineProps<{
 
                 <section class="rounded-xl border border-brand-gold/40 bg-white p-6 shadow-sm">
                     <h3 class="font-display text-lg uppercase tracking-[0.12em] text-brand-navy">Notes et comptage de caisse</h3>
-                    <p class="mt-2 text-sm text-gray-600">Ces déclarations ne modifient pas les soldes comptables.</p>
                     <p v-if="declarations.length === 0" class="mt-4 text-sm text-gray-600">Aucune déclaration.</p>
                     <ul v-else class="mt-4 space-y-3 text-sm">
                         <li v-for="declaration in declarations" :key="declaration.id" class="rounded-md border border-gray-200 p-3">

@@ -5,6 +5,7 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import { canAcceptPayment, formatCents, parseMoneyCents, paymentPreview } from '@/utils/moneyInput';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
@@ -54,51 +55,37 @@ const form = useForm({
     client_token: clientToken,
 });
 
-const cents = (value: string): number => {
-    const [whole, fraction = ''] = value.split('.');
-    const minor = (fraction + '00').slice(0, 2);
-
-    return (Number(whole) * 100) + Number(minor);
-};
-
-const formatCents = (value: number): string => {
-    const sign = value < 0 ? '-' : '';
-    const absolute = Math.abs(value);
-    const whole = Math.floor(absolute / 100);
-    const minor = String(absolute % 100).padStart(2, '0');
-
-    return `${sign}${whole}.${minor}`;
-};
-
 const subtotalCents = (line: Line): number => {
     if (!line.product) {
         return 0;
     }
 
     const quantity = Number(line.quantity);
+    const priceCents = parseMoneyCents(line.product.sale_price);
 
-    if (!Number.isInteger(quantity) || quantity < 1) {
+    if (!Number.isInteger(quantity) || quantity < 1 || priceCents === null) {
         return 0;
     }
 
-    return cents(line.product.sale_price) * quantity;
+    return priceCents * quantity;
 };
 
 const totalCents = computed(() => lines.value.reduce((sum, line) => sum + subtotalCents(line), 0));
 const totalLabel = computed(() => formatCents(totalCents.value));
-const receivedCents = computed(() => (amountReceived.value.trim() === '' ? null : cents(amountReceived.value)));
-const differenceLabel = computed(() => {
-    if (receivedCents.value === null) {
-        return null;
+const preview = computed(() => paymentPreview(totalCents.value, amountReceived.value));
+const paymentLine = computed(() => {
+    const current = preview.value;
+
+    if (current.state === 'change' || current.state === 'due') {
+        return `${current.label} : ${current.amount}`;
     }
 
-    const difference = receivedCents.value - totalCents.value;
+    return null;
+});
+const canSubmit = computed(() => {
+    const hasLine = lines.value.some((line) => line.product_id !== '' && Number.isInteger(Number(line.quantity)) && Number(line.quantity) >= 1);
 
-    if (difference < 0) {
-        return { label: 'Montant restant dû', amount: formatCents(difference) };
-    }
-
-    return { label: 'Monnaie à rendre', amount: formatCents(difference) };
+    return hasLine && canAcceptPayment(totalCents.value, amountReceived.value);
 });
 
 const searchLine = (line: Line) => {
@@ -134,9 +121,11 @@ const removeLine = (uid: string) => {
 const fieldError = (key: string): string | undefined => (form.errors as Record<string, string | undefined>)[key];
 
 const submit = () => {
-    if (form.processing) {
+    if (form.processing || !canSubmit.value) {
         return;
     }
+
+    const received = parseMoneyCents(amountReceived.value);
 
     form.transform(() => ({
         lines: lines.value
@@ -146,7 +135,7 @@ const submit = () => {
                 quantity: Number(line.quantity),
             })),
         currency: currency.value,
-        amount_received: amountReceived.value,
+        amount_received: received === null ? '' : formatCents(received),
         client_token: clientToken,
     })).post(route('sales.store'));
 };
@@ -162,11 +151,6 @@ const submit = () => {
 
         <div class="py-8">
             <div class="mx-auto max-w-4xl space-y-6 px-4 sm:px-6 lg:px-8">
-                <p class="text-sm text-gray-600">
-                    La vente sort le stock de la boutique uniquement. Les prix enregistrés sont ceux du catalogue.
-                    L’aperçu ci-dessous est indicatif : le total, la monnaie et la caisse sont calculés par le serveur.
-                </p>
-
                 <form class="space-y-4 rounded-xl border border-brand-gold/40 bg-white p-6 shadow-sm" @submit.prevent="submit">
                     <div v-for="(line, index) in lines" :key="line.uid" class="space-y-3 rounded-lg border border-gray-200 p-4">
                         <div class="flex items-center justify-between gap-3">
@@ -206,7 +190,7 @@ const submit = () => {
                             <InputLabel :for="`qty-${line.uid}`" value="Quantité" />
                             <TextInput :id="`qty-${line.uid}`" v-model="line.quantity" type="number" min="1" class="mt-1 block w-full" />
                         </div>
-                        <p class="text-sm text-gray-600">Sous-total aperçu : {{ formatCents(subtotalCents(line)) }} {{ currency }}</p>
+                        <p class="text-sm text-gray-600">Sous-total : {{ formatCents(subtotalCents(line)) }} {{ currency }}</p>
                         <InputError :message="fieldError(`lines.${index}.product_id`)" />
                         <InputError :message="fieldError(`lines.${index}.quantity`)" />
                     </div>
@@ -226,21 +210,30 @@ const submit = () => {
                         </div>
                         <div>
                             <InputLabel for="amount_received" value="Montant reçu" />
-                            <TextInput id="amount_received" v-model="amountReceived" type="number" min="0" step="0.01" class="mt-1 block w-full" />
+                            <TextInput
+                                id="amount_received"
+                                v-model="amountReceived"
+                                type="text"
+                                inputmode="decimal"
+                                autocomplete="off"
+                                autocorrect="off"
+                                spellcheck="false"
+                                class="mt-1 block w-full"
+                            />
                             <InputError class="mt-2" :message="form.errors.amount_received" />
                         </div>
                     </div>
 
                     <div class="rounded-md bg-brand-cream p-4 text-sm text-brand-navy">
-                        <p>Total général aperçu : {{ totalLabel }} {{ currency }}</p>
-                        <p v-if="differenceLabel">{{ differenceLabel.label }} : {{ differenceLabel.amount }} {{ currency }}</p>
-                        <p class="mt-1 text-xs text-gray-600">La caisse enregistrera le total de la vente, pas le montant rendu au client.</p>
+                        <p>Total : {{ totalLabel }} {{ currency }}</p>
+                        <p v-if="paymentLine">{{ paymentLine }} {{ currency }}</p>
+                        <p v-else-if="preview.state === 'invalid'">Montant reçu invalide.</p>
                     </div>
                     <InputError :message="form.errors.client_token" />
 
                     <div class="flex items-center justify-end gap-3">
                         <Link :href="route('sales.index')" class="text-sm text-brand-navy underline">Retour</Link>
-                        <PrimaryButton :disabled="form.processing">Enregistrer la vente</PrimaryButton>
+                        <PrimaryButton :disabled="form.processing || !canSubmit">Enregistrer la vente</PrimaryButton>
                     </div>
                 </form>
                 <p v-if="props.filters.q" class="sr-only">{{ props.matches.length }}</p>

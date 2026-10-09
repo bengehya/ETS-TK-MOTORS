@@ -37,10 +37,6 @@ const submit = () => {
 
         <div class="py-8">
             <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-                <p class="mb-4 text-sm text-gray-600">
-                    L’enregistrement ne change pas le stock. Un patron doit valider l’arrivage pour augmenter l’emplacement choisi.
-                </p>
-
                 <form v-if="products.length > 0" class="rounded-xl border border-brand-gold/40 bg-white p-6 shadow-sm" @submit.prevent="submit">
                     <div class="space-y-4">
                         <div>

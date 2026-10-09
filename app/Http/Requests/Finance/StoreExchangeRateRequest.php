@@ -7,6 +7,15 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StoreExchangeRateRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if (is_string($this->input('cdf_per_usd'))) {
+            $this->merge([
+                'cdf_per_usd' => str_replace([' ', ','], ['', '.'], trim($this->input('cdf_per_usd'))),
+            ]);
+        }
+    }
+
     public function authorize(): bool
     {
         return $this->user()?->hasPermission(Permission::ManageExpenses) ?? false;

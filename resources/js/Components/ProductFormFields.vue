@@ -18,7 +18,6 @@ withDefaults(defineProps<{
         <div>
             <InputLabel for="code" value="Code article" />
             <TextInput id="code" v-model="form.code" type="text" class="mt-1 block w-full" required />
-            <p class="mt-1 text-xs text-gray-500">Identifiant unique interne. Champ code-barres prévu pour un futur scan.</p>
             <InputError class="mt-2" :message="form.errors.code" />
         </div>
 
@@ -65,7 +64,6 @@ withDefaults(defineProps<{
                 class="mt-1 block w-full"
                 :required="requirePurchasePrice"
             />
-            <p class="mt-1 text-xs text-gray-500">Donnée interne, utilisée plus tard pour le bénéfice. Non visible par l’employé.</p>
             <InputError class="mt-2" :message="form.errors.purchase_price" />
         </div>
 

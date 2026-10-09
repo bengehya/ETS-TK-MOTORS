@@ -37,7 +37,7 @@ const submit = () => {
             </h2>
 
             <p class="mt-1 text-sm text-gray-600">
-                Complétez votre civilité, votre prénom et votre nom. Rien n’est déduit de votre adresse e-mail.
+                Complétez votre civilité, votre prénom et votre nom.
             </p>
         </header>
 

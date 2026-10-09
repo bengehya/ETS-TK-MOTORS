@@ -32,9 +32,6 @@ const submit = () => {
 
         <div class="py-8">
             <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-                <p class="mb-4 text-sm text-gray-600">
-                    L’enregistrement ne débite pas la caisse. Le débit a lieu seulement après validation, si le solde est suffisant.
-                </p>
                 <form class="space-y-4 rounded-xl border border-brand-gold/40 bg-white p-6 shadow-sm" @submit.prevent="submit">
                     <div>
                         <InputLabel for="amount" value="Montant" />

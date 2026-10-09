@@ -115,10 +115,6 @@ const submit = () => form.get(route('requests.index'), { preserveState: true });
 
                 <section class="rounded-xl border border-brand-gold/40 bg-white p-6 shadow-sm">
                     <h3 class="font-display text-lg uppercase tracking-[0.12em] text-brand-navy">Suggestions de ravitaillement</h3>
-                    <p class="mt-2 text-sm text-gray-600">
-                        Une suggestion apparaît à partir de {{ restock.repeat_threshold }} demandes sur {{ restock.observation_days }} jours.
-                        Elle n’achète rien et ne déplace aucun stock.
-                    </p>
                     <p v-if="suggestions.length === 0" class="mt-3 text-sm text-gray-600">Aucune suggestion visible.</p>
                     <article v-for="suggestion in suggestions" :key="suggestion.id" class="mt-4 border-t border-gray-100 pt-4 text-sm">
                         <p class="font-medium text-brand-navy">{{ suggestion.label }} · {{ suggestion.priority_label }} · {{ suggestion.status_label }}</p>

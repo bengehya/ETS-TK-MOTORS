@@ -57,10 +57,6 @@ const search = () => {
                     </Link>
                 </div>
 
-                <p v-if="canMutateStock" class="text-sm text-gray-600">
-                    Le dépôt n’est jamais vendable en boutique. Un réassort se fait uniquement par transfert, depuis la fiche article.
-                </p>
-
                 <form class="grid gap-3 rounded-xl border border-brand-gold/40 bg-white p-4 sm:grid-cols-3" @submit.prevent="search">
                     <TextInput v-model="q" type="search" placeholder="Nom ou code" class="sm:col-span-2" />
                     <div class="flex gap-2">

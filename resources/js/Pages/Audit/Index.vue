@@ -12,6 +12,9 @@ const props = defineProps<{
         data: {
             id: number;
             action: string;
+            result: string | null;
+            actor_role: string | null;
+            correlation_id: string | null;
             reason: string | null;
             created_at_label: string | null;
             subject_type: string | null;
@@ -33,6 +36,49 @@ const form = useForm({
 });
 
 const submit = () => form.get(route('audit.index'), { preserveState: true });
+
+const resultLabel = (result: string | null): string => {
+    if (result === 'success') {
+        return 'Réussi';
+    }
+
+    if (result === 'failure') {
+        return 'Échec';
+    }
+
+    if (result === 'denied') {
+        return 'Refusé';
+    }
+
+    return '—';
+};
+
+const roleLabel = (role: string | null): string => {
+    if (role === 'BOSS_PRINCIPAL') {
+        return 'Patron principal';
+    }
+
+    if (role === 'BOSS_SECONDAIRE') {
+        return 'Patron secondaire';
+    }
+
+    if (role === 'EMPLOYE') {
+        return 'Employé';
+    }
+
+    return '—';
+};
+
+const contextLines = (values: Record<string, unknown> | null): string[] => {
+    if (!values) {
+        return [];
+    }
+
+    return Object.entries(values)
+        .filter((entry) => ['string', 'number', 'boolean'].includes(typeof entry[1]) || entry[1] === null)
+        .slice(0, 8)
+        .map(([key, value]) => `${key} : ${value ?? '—'}`);
+};
 </script>
 
 <template>
@@ -71,7 +117,9 @@ const submit = () => form.get(route('audit.index'), { preserveState: true });
                             <tr>
                                 <th class="px-4 py-3">Date</th>
                                 <th class="px-4 py-3">Utilisateur</th>
+                                <th class="px-4 py-3">Rôle</th>
                                 <th class="px-4 py-3">Action</th>
+                                <th class="px-4 py-3">Résultat</th>
                                 <th class="px-4 py-3">Sujet</th>
                                 <th class="px-4 py-3">Motif</th>
                             </tr>
@@ -85,9 +133,15 @@ const submit = () => form.get(route('audit.index'), { preserveState: true });
                                         {{ log.user?.name ?? 'Compte supprimé' }}
                                     </span>
                                 </td>
+                                <td class="px-4 py-3">{{ roleLabel(log.actor_role) }}</td>
                                 <td class="px-4 py-3">{{ log.action }}</td>
-                                <td class="px-4 py-3">{{ log.subject_type }} #{{ log.subject_id }}</td>
-                                <td class="px-4 py-3">{{ log.reason ?? '—' }}</td>
+                                <td class="px-4 py-3">{{ resultLabel(log.result) }}</td>
+                                <td class="px-4 py-3">{{ log.subject_type ?? '—' }} <template v-if="log.subject_id">#{{ log.subject_id }}</template></td>
+                                <td class="px-4 py-3">
+                                    <p>{{ log.reason ?? '—' }}</p>
+                                    <p v-if="log.correlation_id" class="text-xs text-gray-500">Corrélation {{ log.correlation_id }}</p>
+                                    <p v-for="line in contextLines(log.new_values)" :key="line" class="text-xs text-gray-600">{{ line }}</p>
+                                </td>
                             </tr>
                         </tbody>
                     </table>

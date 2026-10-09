@@ -53,7 +53,7 @@ const submit = () => {
         <div class="py-8">
             <div class="mx-auto max-w-3xl space-y-6 px-4 sm:px-6 lg:px-8">
                 <p class="text-sm text-gray-600">
-                    Enregistrez une demande lorsqu’un article n’est pas disponible. Les demandes répétées augmentent la fréquence et peuvent passer en priorité urgente.
+                    Enregistrez une demande lorsqu’un article n’est pas disponible.
                 </p>
                 <form class="rounded-xl border border-brand-gold/40 bg-white p-6 shadow-sm" @submit.prevent="runSearch">
                     <InputLabel value="Nom, code ou code-barres" />
