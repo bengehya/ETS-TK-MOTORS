@@ -9,6 +9,7 @@ use App\Http\Controllers\Finance\CashController;
 use App\Http\Controllers\Finance\CashDeclarationController;
 use App\Http\Controllers\Finance\ExchangeController;
 use App\Http\Controllers\Finance\ExpenseController;
+use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProfilePhotoController;
 use App\Http\Controllers\Rentals\RentalController;
@@ -20,6 +21,7 @@ use App\Http\Controllers\Stock\StockLocationController;
 use App\Http\Controllers\Stock\StockMovementController;
 use App\Http\Controllers\Supply\ArrivalController;
 use App\Http\Controllers\Users\InvitationController;
+use App\Http\Controllers\Users\UserSuspensionController;
 use App\Services\BootstrapRegistrationService;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -46,6 +48,12 @@ Route::middleware('auth')->group(function () {
         Route::get('/utilisateurs/inviter', [InvitationController::class, 'create'])->name('users.invitations.create');
         Route::post('/utilisateurs/invitations', [InvitationController::class, 'store'])->name('users.invitations.store');
         Route::delete('/utilisateurs/invitations/{invitation}', [InvitationController::class, 'destroy'])->name('users.invitations.destroy');
+        Route::post('/utilisateurs/{member}/suspension', [UserSuspensionController::class, 'store'])->name('users.suspend');
+        Route::delete('/utilisateurs/{member}/suspension', [UserSuspensionController::class, 'destroy'])->name('users.reactivate');
+
+        Route::get('/maintenance', [MaintenanceController::class, 'edit'])->name('maintenance.edit');
+        Route::post('/maintenance', [MaintenanceController::class, 'store'])->name('maintenance.store');
+        Route::delete('/maintenance', [MaintenanceController::class, 'destroy'])->name('maintenance.destroy');
     });
 
     Route::get('/api/me', MeController::class)->name('api.me');

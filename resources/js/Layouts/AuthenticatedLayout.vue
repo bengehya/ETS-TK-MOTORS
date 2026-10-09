@@ -46,6 +46,7 @@ const rentalsEnabled = computed(() => Boolean(page.props.features?.rentals));
 const canManageRentals = computed(() => rentalsEnabled.value && Boolean(user?.permissions.includes('manage_rentals')));
 const canViewReports = computed(() => Boolean(user?.permissions.includes('view_reports')));
 const canViewAudit = computed(() => Boolean(user?.permissions.includes('view_audit')));
+const maintenanceActive = computed(() => Boolean(page.props.maintenance));
 const operationError = computed(() => (typeof page.props.flash?.error === 'string' ? page.props.flash.error : null));
 </script>
 
@@ -143,6 +144,13 @@ const operationError = computed(() => (typeof page.props.flash?.error === 'strin
                             >
                                 Utilisateurs
                             </NavLink>
+                            <NavLink
+                                v-if="canManageUsers"
+                                :href="route('maintenance.edit')"
+                                :active="route().current('maintenance.*')"
+                            >
+                                Mode maintenance
+                            </NavLink>
                             <NavGroup
                                 v-if="canRecordArrivals"
                                 label="Approvisionnements"
@@ -187,6 +195,9 @@ const operationError = computed(() => (typeof page.props.flash?.error === 'strin
                                 <template #content>
                                     <DropdownLink v-if="canManageUsers" :href="route('users.invitations.index')">
                                         Utilisateurs
+                                    </DropdownLink>
+                                    <DropdownLink v-if="canManageUsers" :href="route('maintenance.edit')">
+                                        Mode maintenance
                                     </DropdownLink>
                                     <DropdownLink :href="route('profile.edit')">
                                         Profil
@@ -326,6 +337,13 @@ const operationError = computed(() => (typeof page.props.flash?.error === 'strin
                         >
                             Utilisateurs
                         </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            v-if="canManageUsers"
+                            :href="route('maintenance.edit')"
+                            :active="route().current('maintenance.*')"
+                        >
+                            Mode maintenance
+                        </ResponsiveNavLink>
                         <div v-if="canRecordArrivals">
                             <button
                                 type="button"
@@ -385,6 +403,17 @@ const operationError = computed(() => (typeof page.props.flash?.error === 'strin
                 </div>
             </div>
         </nav>
+
+        <div
+            v-if="maintenanceActive && canManageUsers"
+            class="border-b border-brand-gold bg-brand-gold/25"
+        >
+            <div class="mx-auto max-w-7xl px-4 py-2 text-sm text-brand-navy sm:px-6 lg:px-8">
+                <Link :href="route('maintenance.edit')" class="font-semibold underline">
+                    Mode maintenance actif.
+                </Link>
+            </div>
+        </div>
 
         <header v-if="$slots.header" class="bg-white shadow-sm">
             <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">

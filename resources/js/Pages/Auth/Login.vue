@@ -11,6 +11,7 @@ defineProps<{
     canResetPassword?: boolean;
     canRegister?: boolean;
     status?: string;
+    error?: string;
 }>();
 
 const form = useForm({
@@ -37,6 +38,10 @@ const submit = () => {
 
         <div v-if="status" class="mb-4 text-sm font-medium text-green-700">
             {{ status }}
+        </div>
+
+        <div v-if="error" class="mb-4 text-sm font-medium text-red-700">
+            {{ error }}
         </div>
 
         <form @submit.prevent="submit">

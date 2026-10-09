@@ -50,6 +50,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
+            'suspended_at' => 'datetime',
             'password' => 'hashed',
             'role' => Role::class,
             'civility' => Civility::class,
@@ -106,6 +107,19 @@ class User extends Authenticatable
     public function isBoss(): bool
     {
         return $this->role->isBoss();
+    }
+
+    public function isSuspended(): bool
+    {
+        return $this->suspended_at !== null;
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function suspendedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'suspended_by');
     }
 
     /**

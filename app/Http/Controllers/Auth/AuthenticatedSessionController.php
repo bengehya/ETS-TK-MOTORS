@@ -20,6 +20,7 @@ class AuthenticatedSessionController extends Controller
             'canResetPassword' => Route::has('password.request'),
             'canRegister' => $registration->isOpen(),
             'status' => session('status'),
+            'error' => session('error'),
         ]);
     }
 

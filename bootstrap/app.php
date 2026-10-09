@@ -3,8 +3,10 @@
 use App\Exceptions\OperationExceptionHandler;
 use App\Http\Middleware\AlignSessionCookieSecurity;
 use App\Http\Middleware\AssignCorrelationId;
+use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureBootstrapRegistrationIsOpen;
 use App\Http\Middleware\EnsureFeatureIsEnabled;
+use App\Http\Middleware\EnsureOrganizationIsAvailable;
 use App\Http\Middleware\EnsureUserHasPermission;
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -45,7 +47,9 @@ return Application::configure(basePath: dirname(__DIR__))
             RefreshZiggyRoutes::class,
             UseBuiltViteAssetsWhenDevServerIsUnsafe::class,
         ], append: [
+            EnsureAccountIsActive::class,
             TerminateIdleSession::class,
+            EnsureOrganizationIsAvailable::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
